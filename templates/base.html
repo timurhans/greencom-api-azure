@@ -1,0 +1,129 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fa/css/all.min.css' %}">
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+    <script>
+      function alerta()
+      {
+      alert("Produto Adicionado");
+      }
+    </script>
+    <title>Greenish B2B</title>
+
+    <style>
+      #number {
+      width: 3em;
+      }
+      #tabela {
+        font-size: 1em;
+      }
+      .product-card{
+        margin-right: 2px;
+      }
+      .banner{
+        margin-left:auto;
+        margin-right:auto;
+        width:90%;
+        margin-bottom: 30px;
+        margin-top: 30px;
+        
+      }
+      .scrollable-menu {
+        height: auto;
+        max-height: 600px;
+        overflow-x: hidden;
+      }      
+    </style>
+</head>
+
+<body>
+  
+    <nav class="sticky-top navbar navbar-expand-lg navbar-dark bg-light">
+        <div class="container">
+          <a class="navbar-brand text-success" href="/">Greenish</a>
+          <button class="navbar-toggler bg-success " type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+          </button>          
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+            <ul class="navbar-nav ml-auto">
+              {% if categorias %}
+              {% for cat in categorias %}
+                <div class="dropdown">
+                  <button class="btn btn-secondary dropdown-toggle bg-light text-success" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                      {{ cat.cat }}
+                    </button>
+                  
+                  <div class="dropdown-menu scrollable-menu" aria-labelledby="dropdownMenuButton">
+                    <div class='col my-3'>
+                      <a class="dropdown-item text-success" href="/{{ cat.cat }}">{{ cat.cat }}</a>
+                    </div>                      
+                      {% for sub in cat.subcats %}
+                      <div class='col my-3'>
+                        <a class="dropdown-item" href="/{{ cat.cat }}/{{ sub }}">{{ sub }}</a>
+                      </div>
+                      {% endfor %}
+                  </div>
+                </div>
+              {% endfor %}
+              {% endif %}
+            </ul>
+            {% if request.user.envia_pedido %}
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item">
+                <a class="nav-link text-success" href="/carrinho/">Carrinho</a>
+              </li>
+              <li class="nav-item">
+                <span class='badge badge-success' id='lblCartCount'> {{ qtd_carrinho }}</span>
+              </li>
+                <div class="dropdown">
+                  <button class="btn btn-secondary dropdown-toggle bg-light text-success" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    {{user.name}}
+                    </button>
+                  
+                  <div class="dropdown-menu scrollable-menu" aria-labelledby="dropdownMenuButton">
+                      <div class='col my-3'>
+                        {% if user.is_rep %}
+                        <a href="/clientes/" class="dropdown-item">Cliente : {{ selected_cliente }}</a>
+                        {% endif %}
+                        <a href="/pedidos" class="dropdown-item">Pedidos</a>
+                        <a href="{% url "password_change" %}" class="dropdown-item">Mudar Senha</a>
+                        <a href="{% url "logout" %}" class="dropdown-item">Logout</a>
+                      </div>
+                  </div>
+                </div>
+            </ul>
+            {% else %}
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item">
+                <a href="{% url "logout" %}" class="bg-light text-success">Logout</a>
+              </li>
+            </ul>
+            {% endif %}
+          </div>
+
+
+
+        </div>
+      </nav>
+
+
+    {% block content %}
+    
+    replace me
+
+    {% endblock %}
+    
+</body>
+
+
+</html>

@@ -1,0 +1,72 @@
+<html>
+  <head>
+    <style>
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+      text-align :center;
+    }
+
+    td {
+    height: 25px;
+    vertical-align: middle;
+    }
+    </style>
+  </head>
+<body>
+
+<img src="../static/imgs/Logo-Greenish.jpeg" width=100 height=100%>
+<h1>Pedido(s)  {{ codigos }}</h1>
+
+<h3>Cliente : {{ pedido.cliente.nome }}</h3>
+<h3>Representante : {{ pedido.representante }}</h3>
+
+<h3>Data : {{ data }}</h3>
+
+<p>Observacoes : {{ pedido.observacoes }}</p>
+
+{% for item in pedido.itens %}
+
+<p><b>{{ item.produto }}</b></p>
+<table class="table table-bordered">
+    <thead class="thead bg-light">
+      <tr>
+        <th scope="col">Cor</th>
+        {% for t in item.produto__tamanhos %}
+        <td scope="col">{{ t }}</th>
+        {% endfor %}
+        <td scope="col">Qtd</td>
+        <td scope="col">Valor</td>
+      </tr>
+    </thead>
+    <tbody>
+      {% for key, value in item.qtds.items %}
+      <tr>
+        <th scope="row">{{ key }}</th>
+        {% for q in value %}
+        <td> {{ q }} </td>
+        {% endfor %}
+        <td>  </td>
+        <td>  </td>
+      </tr>
+      {% endfor %}
+      <tr>
+        
+        {% for t in item.produto__tamanhos %}
+        <td scope="col"></th>
+        {% endfor %}
+        <th scope="col">Totais</th>
+        <th scope="col">{{ item.qtd_item }}</th>
+        <th scope="col">{{ item.valor_item }}</th>
+      </tr>
+    </tbody>
+</table>
+<br />
+<br />
+<br />
+{% endfor %}
+
+<h2>Quantidade Total : {{ pedido.qtd_total }}</h2>
+<h2>Valor Total : R$ {{ pedido.valor_total }}</h2>
+</body>
+</html>

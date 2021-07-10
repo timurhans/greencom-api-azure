@@ -1,0 +1,17 @@
+b2bondas.code-workspace
+static/imgs/*
+!static/imgs/Logo-Greenish.jpeg
+static/pdfs/*
+!static/pdfs/c1fnslecsvpfeokq7z4zluorad3yfyra
+ecomb2b/__pycache__/*
+core/__pycache__/*
+core/migrations/*
+!core/migrations/__init__.py
+account/__pycache__/*
+account/migrations/*
+!account/migrations/__init__.py
+params/__pycache__/*
+params/migrations/*
+!params/migrations/__init__.py
+db.sqlite3
+ecomb2b/settings.py

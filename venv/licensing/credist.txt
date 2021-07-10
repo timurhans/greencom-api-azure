@@ -1,0 +1,94 @@
+This is the redist.txt file mentioned in the associated Intel End User License 
+Agreement for Developer Tools (Version October 2020) (“Agreement”).  All 
+capitalized terms used but not defined in this file have the same meaning as 
+specified in the Agreement. The Redistributables are listed below, and are 
+subject to all of the terms and conditions of the Agreement.
+
+Please note that Third Party Programs, if any, may also be redistributable. See 
+the “third-party-programs.txt” or other similarly-named text file for more 
+details.”
+
+################################################################################
+###   Intel® oneAPI DPC++/C++ Compiler & Intel® C++ Compiler Classic 2021.2.0
+################################################################################
+
+<installdir>/Library/bin/libiomp5md.dll
+<installdir>/Library/bin/libiomp5md.pdb
+<installdir>/Library/bin/libiompstubs5md.dll
+<installdir>/bin/omptarget.rtl.opencl.dll
+<installdir>/bin/omptarget.rtl.level0.dll
+<installdir>/bin/omptarget.dll
+<installdir>/Shared Libraries/libomp-fallback-cassert.obj
+<installdir>/Shared Libraries/libomp-fallback-cmath-fp64.obj
+<installdir>/Shared Libraries/libomp-fallback-cmath.obj
+<installdir>/Shared Libraries/libomp-fallback-complex-fp64.obj
+<installdir>/Shared Libraries/libomp-fallback-complex.obj
+<installdir>/Library/bin/libchkp.dll
+<installdir>/Library/bin/libirngmd.dll
+<installdir>/Library/bin/libmmd.dll
+<installdir>/Library/bin/libmmd.pdb
+<installdir>/Library/bin/libmmdd.dll
+<installdir>/Library/bin/libmmdd.pdb
+<installdir>/Library/bin/svml_dispmd.dll
+<installdir>/Library/bin/svml_dispmd.pdb
+<installdir>/bin/pi_opencl.dll
+<installdir>/Shared Libraries/cl.cfg
+<installdir>/Shared Libraries/OpenCL.lib
+<installdir>/Shared Libraries/task_executor64.lib
+<installdir>/Shared Libraries/task_executor64.dll
+<installdir>/Shared Libraries/OclCpuBackEnd64.lib
+<installdir>/Shared Libraries/OclCpuBackEnd64.dll
+<installdir>/Shared Libraries/libintelocl.so-gdb.py
+<installdir>/Shared Libraries/intelocl64.lib
+<installdir>/Shared Libraries/intelocl64.dll
+<installdir>/Shared Libraries/cpu_device64.lib
+<installdir>/Shared Libraries/cpu_device64.dll
+<installdir>/Shared Libraries/common_clang64.dll
+<installdir>/Shared Libraries/clbltfnz0.rtl
+<installdir>/Shared Libraries/clbltfnl9.rtl
+<installdir>/Shared Libraries/clbltfnh8.rtl
+<installdir>/Shared Libraries/clbltfne9.rtl
+<installdir>/Shared Libraries/clang_compiler64.lib
+<installdir>/Shared Libraries/clang_compiler64.dll
+<installdir>/Shared Libraries/cl_logger.lib
+<installdir>/Shared Libraries/__ocl_svml_z0.dll
+<installdir>/Shared Libraries/__ocl_svml_l9.dll
+<installdir>/Shared Libraries/__ocl_svml_h8.dll
+<installdir>/Shared Libraries/__ocl_svml_e9.dll
+<installdir>/Shared Libraries/clbltfnshared.rtl
+<installdir>/Shared Libraries/cllibrary.rtl
+<installdir>/Shared Libraries/cllibrarye9.o
+<installdir>/Shared Libraries/cllibraryh8.o
+<installdir>/Shared Libraries/cllibraryl9.o
+<installdir>/Shared Libraries/cllibraryz0.o
+<installdir>/Library/OpenCL.dll
+<installdir>/Shared Libraries/emu/task_executor64_emu.lib
+<installdir>/Shared Libraries/emu/task_executor64_emu.dll
+<installdir>/Shared Libraries/emu/OclCpuBackEnd64_emu.lib
+<installdir>/Shared Libraries/emu/OclCpuBackEnd64_emu.dll
+<installdir>/Shared Libraries/emu/intelocl64_emu.lib
+<installdir>/Shared Libraries/emu/intelocl64_emu.dll
+<installdir>/Shared Libraries/emu/cpu_device64_emu.lib
+<installdir>/Shared Libraries/emu/cpu_device64_emu.dll
+<installdir>/Shared Libraries/emu/common_clang64.dll
+<installdir>/Shared Libraries/emu/clbltfnz0.rtl
+<installdir>/Shared Libraries/emu/clbltfnl9.rtl
+<installdir>/Shared Libraries/emu/clbltfnh8.rtl
+<installdir>/Shared Libraries/emu/clbltfne9.rtl
+<installdir>/Shared Libraries/emu/clang_compiler64_emu.lib
+<installdir>/Shared Libraries/emu/clang_compiler64_emu.dll
+<installdir>/Shared Libraries/emu/__ocl_svml_z0.dll
+<installdir>/Shared Libraries/emu/__ocl_svml_l9.dll
+<installdir>/Shared Libraries/emu/__ocl_svml_h8.dll
+<installdir>/Shared Libraries/emu/__ocl_svml_e9.dll
+<installdir>/Shared Libraries/emu/cl_logger_emu.lib
+<installdir>/Shared Libraries/emu/cllibrary.rtl
+<installdir>/Shared Libraries/emu/cllibrarye9.o
+<installdir>/Shared Libraries/emu/cllibraryh8.o
+<installdir>/Shared Libraries/emu/cllibraryl9.o
+<installdir>/Shared Libraries/emu/cllibraryz0.o
+<installdir>/Shared Libraries/emu/libintelocl.so-gdb.py
+<installdir>/Shared Libraries/emu/cl.cfg
+<installdir>/bin/sycld.dll
+<installdir>/bin/sycl.dll
+<installdir>/bin/pi_level_zero.dll
