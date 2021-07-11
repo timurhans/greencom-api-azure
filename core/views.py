@@ -5,7 +5,6 @@ from django.template.loader import get_template
 from django.db.models import Q,Count,Sum,F
 from django.utils import timezone
 from django.core.mail import EmailMessage
-from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated,IsAuthenticatedOrReadOnly,AllowAny
@@ -52,8 +51,8 @@ def define_tipo_venda(colecao):
 
 
 def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
-    ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
-    ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
+    # ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
+    # ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
 
     sort_params = {}
     sort_params['produto__linha']=linha
@@ -73,8 +72,10 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
                 periodo = Periodo.objects.get(desc_periodo=periodo)
                 sort_params['produto__produtoperiodo__periodo']=periodo
 
-    queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
-    tabela=tabela_precos,**sort_params)
+    # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
+    # tabela=tabela_precos,**sort_params)
+    queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
+    tabela=tabela_precos,**sort_params).distinct()
     queryset = list(queryset.values('preco','produto__produto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
@@ -85,8 +86,8 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
 
 def busca_produtos(request,tabela_precos,query):
 
-    ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
-    ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
+    # ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
+    # ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
 
     query = query.upper()
 
@@ -110,8 +111,10 @@ def busca_produtos(request,tabela_precos,query):
                 sort_params['produto__colecao__in']=cols_erp
     
 
-    queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
-    tabela=tabela_precos,**sort_params)
+    # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
+    # tabela=tabela_precos,**sort_params)
+    queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
+    tabela=tabela_precos,**sort_params).distinct()
     queryset = list(queryset.values('preco','produto__produto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
@@ -175,7 +178,7 @@ def carrinho(request):
         return Response({'message': 'Fazer Login','confirmed':False})
 
 # @api_view(['GET','POST'])
-def carrinho_add(request,is_update=False):
+def carrinho_add(request):
 
     #Parametro is_update verifica se origem da adicao vem da vitrine ou do carrinho,
     #  caso seja update do carrinho retorna somente True ou False para que o retorno seja dado na view carrinho_update
@@ -186,7 +189,7 @@ def carrinho_add(request,is_update=False):
     qtd_item = post['qtd_total']
     valor_item = qtd_item*decimal.Decimal((post['produto']['preco']))
 
-    status,response = carrinho_triagem_processa(post,request.user)
+    status,response = carrinho_triagem(post,request.user)
 
     if status==False:
         return Response(response)
@@ -201,15 +204,15 @@ def carrinho_add(request,is_update=False):
     
     try: 
         PedidoItem.objects.get(pedido_periodo=carrinhoPeriodo,produto__produto=post['produto']['produto__produto'])
-        if is_update:
-            return False
-        else:
-            # Fazer logica, para se for caso de is update, alterar quantidades
-            return Response({'message':'Produto ja presente no carrinho no periodo','confirmed':False})
+        return Response({'message':'Produto ja presente no carrinho no periodo','confirmed':False})
     except:
         produto = Produto.objects.get(produto=post['produto']['produto__produto'])
+        qtds_tratadas = carrinho_trata_qtds_post(post['qtds'])
+        periodos_alteracao = carrinho_verifica_periodos_alteracao(qtds_tratadas,produto)
+        qtds_tratadas = json.dumps(qtds_tratadas)
+
         carrinhoItem = PedidoItem(pedido_periodo=carrinhoPeriodo,preco=post['produto']['preco'],
-        qtd_item=qtd_item,valor_item=valor_item,produto=produto,qtds=carrinho_trata_qtds_post(post['qtds']))
+        qtd_item=qtd_item,valor_item=valor_item,produto=produto,qtds=qtds_tratadas,periodos_alteracao=periodos_alteracao)
         carrinhoItem.save()
         carrinhoPeriodo.qtd_periodo = carrinhoPeriodo.qtd_periodo+qtd_item
         carrinhoPeriodo.valor_periodo = carrinhoPeriodo.valor_periodo+valor_item
@@ -218,11 +221,54 @@ def carrinho_add(request,is_update=False):
     carrinho.qtd_total=carrinho.qtd_total+qtd_item
     carrinho.valor_total=carrinho.valor_total+valor_item
     carrinho.save()
-    if is_update:
-        return True
-    else:
-        return Response({'message':'Adicionado ao Carrinho com Sucesso','carrinhoId':carrinho.id,'confirmed':True})
+    return Response({'message':'Adicionado ao Carrinho com Sucesso','carrinhoId':carrinho.id,'confirmed':True})
 
+
+def carrinho_verifica_periodos_alteracao(qtds,produto):
+    #Verifica quais periodos estarao disponiveis para alteracao posteriormente
+
+    prod_periodos = ProdutoPeriodo.objects.filter(produto=produto).order_by('periodo__periodo_faturamento')
+    periodos_list = [pp.periodo.desc_periodo for pp in prod_periodos]
+    try:
+        periodos_list.remove("Pre-selecionados")
+    except:
+        pass
+
+    for prod_per in prod_periodos:
+        prod_per_dados = json.loads(prod_per.dados)
+        prod_per_dict = {}
+        for prod_per_dado in prod_per_dados:
+            if prod_per_dado['liberacao']:
+                prod_per_dict[prod_per_dado['cor']] = [99999999]*len(prod_per_dado['qtds'])
+            else:
+                prod_per_dict[prod_per_dado['cor']] = prod_per_dado['qtds']
+                
+        is_continue = False
+        for cor in qtds:
+            if cor in prod_per_dict.keys():
+                qtds_prod_per = prod_per_dict[cor]
+                qtds_verif = qtds[cor]
+                merged_list = list(zip(qtds_verif, qtds_prod_per))
+                check_list = [1 for i,j in merged_list if i > j]
+                if len(check_list)>0:
+                    print(merged_list)
+                    try:
+                        periodos_list.remove(prod_per.periodo.desc_periodo)
+                    except:
+                        pass
+                    is_continue = True
+                    break                
+            else:
+                try:
+                    periodos_list.remove(prod_per.periodo.desc_periodo)
+                except:
+                    pass
+                is_continue = True
+                break
+        
+        if is_continue:
+            continue
+    return json.dumps(periodos_list)
 
 def carrinho_trata_qtds_post(qtds):
     # Limpa post de qtds do carrinho, para salvar no BD somente cores que de fato tenham pedido
@@ -232,14 +278,15 @@ def carrinho_trata_qtds_post(qtds):
         flag_zeros = all(v == 0 for v in qtds_cor)
         if flag_zeros:
             keys_delete.append(q)
+
     for key in keys_delete:
         del qtds[key]
-    return json.dumps(qtds)
+    return qtds
 
 # @api_view(['GET'])
 def carrinho_get(request):
 
-    status,response = carrinho_triagem_processa(request.GET,request.user)
+    status,response = carrinho_triagem(request.GET,request.user)
 
     if status==False:
         return Response(response)
@@ -255,7 +302,7 @@ def carrinho_get(request):
         dados_periodo['valor_periodo'] = per.valor_periodo
         carrinho_item = PedidoItem.objects.filter(pedido_periodo=per)
         dados_periodo['itens'] = list(
-            carrinho_item.values('id','produto__produto','produto__descricao','produto__sortido','produto__composicao',
+            carrinho_item.values('id','periodos_alteracao','produto__produto','produto__descricao','produto__sortido','produto__composicao',
             'produto__categoria','produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
             'produto__tamanhos','produto__colecao','produto__periodos','qtds','preco','desconto','qtd_item','valor_item'))
         dados_carrinho.append(dados_periodo)
@@ -278,33 +325,59 @@ def carrinho_delete_item(request,id):
     else:
         return Response({'message':'nao foi possivel excluir','confirmed':False})
 
+
 @api_view(['GET','POST'])
-def carrinho_update(request,id):
-    #Atualiza item do carrinho
+def carrinho_update_periodo(request,id):
+
+    post = request.body
+    post = post.decode("utf-8").replace("'", '"')
+    post = json.loads(post)
+
     item_carrinho = PedidoItem.objects.get(id=id)
 
-    if (request.user==item_carrinho.pedido_periodo.pedido.user or request.user.login==item_carrinho.pedido_periodo.pedido.cliente.representante.login):
-        if carrinho_add(request,True):
-            item_carrinho = PedidoItem.objects.get(id=id)
-            deleta_item_carrinho(item_carrinho)
-            return Response({'message':'Alterado com sucesso','carrinhoId':item_carrinho.pedido_periodo.pedido.id,'confirmed':True})
-    
-    return Response({'message':'nao foi possivel alterar','confirmed':False})
+    try:
+        novoPeriodo = PedidoPeriodo.objects.get(pedido=item_carrinho.pedido_periodo.pedido,periodo__desc_periodo=post['periodo'])
+        try:
+            PedidoItem.objects.get(pedido_periodo=novoPeriodo,produto__produto=post['produto']['produto__produto'])
+            return Response({'message':'Produto ja presente no carrinho no periodo','confirmed':False})
+        except:
+            pass
+    except:
+        periodo = Periodo.objects.get(desc_periodo=post['periodo'])
+        novoPeriodo = PedidoPeriodo(periodo=periodo,pedido=item_carrinho.pedido_periodo.pedido)
+        novoPeriodo.save()
 
-# @api_view(['GET','POST'])                   
-def carrinho_triagem(request):
-    # Faz a triagem de qual carrinho deve ser utilizado de acordo com os parametros passados na requisicao
-    if request.method == "GET":
-        return carrinho_triagem_processa(request.GET,request.user)
+    item_carrinho.pedido_periodo = novoPeriodo
+    item_carrinho.save()
+    pedido_atualiza_totais(item_carrinho.pedido_periodo.pedido.id)
 
-    else:
-        post = request.body
-        post = post.decode("utf-8").replace("'", '"')
-        post = json.loads(post)
-        return carrinho_triagem_processa(post,request.user)
+    return Response({'message':'Periodo Alterado com sucesso','confirmed':True})
 
 
-def carrinho_triagem_processa(dadosRequest,user):
+@api_view(['GET','POST'])
+def carrinho_update_qtds(request,id):
+
+    post = request.body
+    post = post.decode("utf-8").replace("'", '"')
+    post = json.loads(post)
+    qtd_item = post['qtd_total']
+    valor_item = qtd_item*decimal.Decimal((post['produto']['preco']))
+    item_carrinho = PedidoItem.objects.get(id=id)
+             
+    qtds_tratadas = carrinho_trata_qtds_post(post['qtds'])
+    periodos_alteracao = carrinho_verifica_periodos_alteracao(qtds_tratadas,item_carrinho.produto)
+    qtds_tratadas = json.dumps(qtds_tratadas)
+    item_carrinho.qtds=qtds_tratadas
+    item_carrinho.periodos_alteracao=periodos_alteracao
+    item_carrinho.qtd_item=qtd_item
+    item_carrinho.valor_item=valor_item
+    item_carrinho.save()
+    pedido_atualiza_totais(item_carrinho.pedido_periodo.pedido.id)
+
+    return Response({'message':'Qtds Alteradas com sucesso','confirmed':True})
+
+
+def carrinho_triagem(dadosRequest,user):
     #verifica se request nao tem carrinho id, caso nao tenha = True
     flag_carrinho = True
     if 'carrinhoId' in dadosRequest:
@@ -458,6 +531,7 @@ def pedidos_save(request,id):
     #Salva Pedido - Somente liberacao cliente - Para ser finalizado depois
     pedido = Pedido.objects.get(id=id)
     if (request.user==pedido.user or request.user.login==pedido.cliente.representante.login):
+        print(request.GET)
         pedido.liberado_cliente=True
         if 'observacoes' in request.GET:
             observacoes = request.GET['observacoes']
@@ -553,6 +627,7 @@ def pedido_envia_email(pedido,lista_pedidos):
         destinatario.append("comercial.greenish@grupoondas.com.br")
         destinatario.append("comercial@greenish.com.br")
         destinatario.append(pedido['cliente']['representante']['email'])
+        # destinatario.append("timur@greenish.com.br")
     else:
         destinatario.append(pedido['cliente']['email'])
         destinatario.append(pedido['cliente']['representante']['email'])
@@ -620,9 +695,12 @@ def pedido_atualiza_totais(id_pedido):
     periodos = PedidoPeriodo.objects.filter(pedido__id=id_pedido)
     for per in periodos:
         totais = PedidoPeriodo.objects.filter(id=per.id).aggregate(qtd=Sum('pedidoitem__qtd_item'),valor=Sum('pedidoitem__valor_item'))
-        per.qtd_periodo = totais['qtd']
-        per.valor_periodo = totais['valor']
-        per.save()
+        try:
+            per.qtd_periodo = totais['qtd']
+            per.valor_periodo = totais['valor']
+            per.save()
+        except:
+            per.delete()
     #atualiza totais
     pedido = Pedido.objects.get(id=id_pedido)
     totais = Pedido.objects.filter(id=id_pedido).aggregate(qtd=Sum('pedidoperiodo__qtd_periodo'),valor=Sum('pedidoperiodo__valor_periodo'))
@@ -936,12 +1014,6 @@ def produtos_update(request):
     if request.user.is_superuser:
         if request.method == 'POST':
             #Altera campo ultima atualizacao
-            data = date.today()
-            data = date.strftime(data,'%Y-%m-%d') 
-            ultima_atualizacao = Parametro.objects.get_or_create(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')[0]
-            ultima_atualizacao.valor = data
-            ultima_atualizacao.save()
-
 
             produtos = request.POST['produtos']
             produtos = json.loads(produtos)
@@ -993,18 +1065,26 @@ def produtos_update(request):
                 prods_periodo_excluir = ProdutoPeriodo.objects.filter(produto__produto=produto).exclude(periodo__desc_periodo__in=lista_periodos)
                 prods_periodo_excluir.delete()
                 for periodo in periodos.keys():
+                    qtd_total_periodo = sum([x['qtd_total'] for x in periodos[periodo]])
                     try:
                         prod_periodo = ProdutoPeriodo.objects.get(produto__produto=produto,periodo__desc_periodo=periodo)
                         prod_periodo.dados = json.dumps(periodos[periodo])
+                        prod_periodo.qtd_total = qtd_total_periodo
                     except:
                         print(periodo)
                         periodo_obj = Periodo.objects.get(desc_periodo=periodo)
-                        prod_periodo = ProdutoPeriodo(produto=produto,periodo=periodo_obj,dados = json.dumps(periodos[periodo]))
+                        prod_periodo = ProdutoPeriodo(produto=produto,periodo=periodo_obj,
+                        dados = json.dumps(periodos[periodo]),qtd_total = qtd_total_periodo)
                     prod_periodo.save()
                 
                 #deleta ProdutosPeriodo fora dos da ultima atualizacao
                 ProdutoPeriodo.objects.filter(produto__produto=produto).exclude(periodo__desc_periodo__in=periodos).delete()
 
+        data_hora = timezone.now()
+        data_hora = str(data_hora)
+        ultima_atualizacao = Parametro.objects.get_or_create(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')[0]
+        ultima_atualizacao.valor = data_hora
+        ultima_atualizacao.save()
         return Response({'message':'Atualizado com sucesso','errors':errors_list,'confirmed':True})
     return Response({'message':'Erro na atualizacao','confirmed':False})
 

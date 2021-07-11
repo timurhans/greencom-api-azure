@@ -14,9 +14,11 @@ def params(request):
     periodos = list(Periodo.objects.filter(Q(periodo_faturamento__gt=date.today()) | Q(desc_periodo__in=['Imediato','Pre-selecionados'])).order_by(
                 'periodo_faturamento').values())
     ultima_atualizacao_clientes = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_CLIENTES').valor
+    ultima_atualizacao_produtos = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS').valor
     colecao_vigente = Parametro.objects.get(parametro='COLECAO_VIGENTE').valor
     return JsonResponse({'cols': cols_erp,'tabelas':tabelas,'periodos':periodos,
-    'ultima_atualizacao_clientes':ultima_atualizacao_clientes,'colecao_vigente':colecao_vigente})
+    'ultima_atualizacao_clientes':ultima_atualizacao_clientes,
+    'ultima_atualizacao_produtos':ultima_atualizacao_produtos,'colecao_vigente':colecao_vigente})
 
 def filterOptions(request):
     

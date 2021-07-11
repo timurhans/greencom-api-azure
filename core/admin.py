@@ -74,12 +74,10 @@ class ProdutoPrecoAdmin(admin.ModelAdmin):
 class PedidoAdmin(admin.ModelAdmin):
 
     list_display = (
-        # 'cliente',
-    'user','cliente','codigo_erp','tipo_venda','colecao','qtd_total','valor_total','data_criacao','ultima_atualiz')
+    'user','cliente','codigo_erp','tipo_venda','liberado_rep','is_teste',
+    'colecao','qtd_total','valor_total','data_criacao','ultima_atualiz')
 
-    search_fields = (
-        # 'cliente__nome',
-        )
+    search_fields = ('cliente__nome','user__name',)
     ordering = ('id',)
     filter_horizontal = ()
 
@@ -95,7 +93,7 @@ class PedidoItemAdmin(admin.ModelAdmin):
 
     list_display = ('pedido_periodo','produto','desconto','preco','qtd_item','valor_item')
 
-    search_fields = ('produto__produto',)
+    search_fields = ('produto__produto','pedido_periodo__pedido__cliente__nome')
     ordering = ('id',)
     filter_horizontal = ()
 

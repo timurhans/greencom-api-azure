@@ -23,8 +23,8 @@ pedidos_processa,pedidos_retoma,pedido_delete,
 promocoes,promocoes_computa,promocoes_remove,
 # generate_PDF,pedidos,
 produtos,home,clientes,busca,
-categorias,categorias_update,periodos_api,barras,carrinho,
-carrinho_delete_item,carrinho_update,produtos_update)
+categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
+carrinho_delete_item,produtos_update)
 from params.views import (params,filterOptions)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
@@ -38,7 +38,8 @@ urlpatterns = [
     path('carrinho/', carrinho),
     path('busca/', busca),
     path('carrinho/delete_item/<id>', carrinho_delete_item),
-    path('carrinho/update/<id>', carrinho_update),
+    path('carrinho/update_periodo/<id>', carrinho_update_periodo),
+    path('carrinho/update_qtds/<id>', carrinho_update_qtds),
     path('pedidos/', pedidos),
     path('pedidos/deleta/<id>/', pedido_delete),
     path('pedidos/salva/<id>/', pedidos_save),

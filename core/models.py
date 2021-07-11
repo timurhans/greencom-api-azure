@@ -88,6 +88,7 @@ class ProdutoPeriodo(models.Model):
     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
     periodo = models.ForeignKey(Periodo,null=False,blank=False, on_delete=models.CASCADE)
     dados = models.TextField()
+    qtd_total = models.IntegerField(default=0)
     def __str__(self):
         return str(self.produto.produto+" - "+str(self.periodo.desc_periodo))
 
@@ -119,7 +120,7 @@ class PedidoPeriodo(models.Model):
     qtd_periodo = models.IntegerField(default=0)
     valor_periodo = models.DecimalField(max_digits=8, decimal_places=2,default=0)
     def __str__(self):
-        return str(self.pedido)+' - '+self.periodo.desc_periodo
+        return str(self.pedido.cliente)+' - '+self.periodo.desc_periodo
 
 class PedidoItem(models.Model):
     pedido_periodo = models.ForeignKey(PedidoPeriodo,null=False,blank=False, on_delete=models.CASCADE)
@@ -129,8 +130,9 @@ class PedidoItem(models.Model):
     preco = models.DecimalField(max_digits=8, decimal_places=2)
     qtd_item = models.IntegerField()
     valor_item = models.DecimalField(max_digits=8, decimal_places=2)
+    periodos_alteracao = models.TextField(default="",blank=True,null=True)
     def __str__(self):
-        return str(self.pedido_periodo)+' - '+self.produto.produto
+        return str(self.pedido_periodo.pedido.cliente)+' - '+self.produto.produto
 
 class Promocao(models.Model):
     descricao = models.CharField(max_length=30, null=False, blank=False,unique=True)
