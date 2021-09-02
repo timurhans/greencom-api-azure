@@ -17,42 +17,46 @@ from django.shortcuts import redirect
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path
+from django.conf.urls.static import static
+from django.conf import settings
 from core.views import (logout_view,login_api,clientes_users_update,
 reps_users_update,pedidos,pedidos_save,pedidos_integracao,
-pedidos_processa,pedidos_retoma,pedido_delete,
+pedidos_processa,pedidos_retoma,pedido_delete,pedidos_gera_pdf,
 promocoes,promocoes_computa,promocoes_remove,
 # generate_PDF,pedidos,
 produtos,home,clientes,busca,
 categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
-carrinho_delete_item,produtos_update)
+carrinho_delete_item,produtos_update,produtos_cadastra_promo)
 from params.views import (params,filterOptions)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
 
 
 urlpatterns = [
-    path('home', home),
+    path('home/', home),
     path('api-token-auth/', obtain_auth_token, name='api_token_auth'),
     path('', home),
     path('admin/', admin.site.urls),
     path('carrinho/', carrinho),
     path('busca/', busca),
-    path('carrinho/delete_item/<id>', carrinho_delete_item),
-    path('carrinho/update_periodo/<id>', carrinho_update_periodo),
-    path('carrinho/update_qtds/<id>', carrinho_update_qtds),
+    path('carrinho/delete_item/<id>/', carrinho_delete_item),
+    path('carrinho/update_periodo/<id>/', carrinho_update_periodo),
+    path('carrinho/update_qtds/<id>/', carrinho_update_qtds),
     path('pedidos/', pedidos),
     path('pedidos/deleta/<id>/', pedido_delete),
     path('pedidos/salva/<id>/', pedidos_save),
+    path('pedidos/gera_pdf/<id>/', pedidos_gera_pdf),
     path('pedidos/retoma/<id>/', pedidos_retoma),
     path('pedidos/processa/<id>/', pedidos_processa),
     path('pedidos_integracao/', pedidos_integracao),
     path('promocoes/', promocoes),
-    path('promocoes/<id_pedido>', promocoes_computa),
+    path('promocoes/<id_pedido>/', promocoes_computa),
     path('promocoes/remove/<id_pedido>/', promocoes_remove),
     # path('pedidos/<id_pedido>/PDF/', generate_PDF),
-    path('periodos', periodos_api),
+    path('periodos/', periodos_api),
     path('login/', login_api,name='login_api'),
     path('produtos_update/', produtos_update),
+    path('produtos_cadastra_promo/', produtos_cadastra_promo),
     path('barras/', barras),
     path('params/', params),
     path('filterOptions/', filterOptions),
@@ -78,5 +82,6 @@ urlpatterns = [
 
     path('<linha>/<categoria>/', produtos,name='produtos'),
     path('<linha>/<categoria>/<subcategoria>/', produtos,name='produtos'),
-      
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -25,46 +25,46 @@
 
 <p>Observacoes : {{ pedido.observacoes }}</p>
 
-{% for item in pedido.itens %}
 
-<p><b>{{ item.produto }} - {{ item.periodo_faturamento_desc }}</b></p>
-<table class="table table-bordered">
+
+<table class="table table-bordered" >
+  {% for item in pedido.itens %}
     <thead class="thead bg-light">
       <tr>
-        <th scope="col">Cor</th>
+        <th scope="col" valign="middle" style="width:15%;">Produto</th>
+        <th scope="col" valign="middle" style="width:25%;">Descricao</th>
+        <th scope="col" valign="middle">Cor</th>
         {% for t in item.produto__tamanhos %}
-        <td scope="col">{{ t }}</th>
+        <th scope="col" valign="middle">{{ t }}</th>
+        {% if forloop.last %}
+        {% endif %}
         {% endfor %}
-        <td scope="col">Qtd</td>
-        <td scope="col">Valor</td>
+        <th scope="col" valign="middle">Vr Unit</td>
+        <th scope="col" valign="middle">Qtd</td>
+        <th scope="col" valign="middle">Valor</td>
       </tr>
     </thead>
     <tbody>
       {% for key, value in item.qtds.items %}
       <tr>
-        <th scope="row">{{ key }}</th>
-        {% for q in value %}
+        <td scope="row">{{ item.produto }}</td>
+        <td scope="row">{{ item.produto__descricao }}</td>
+        <td scope="row">{{ key }}</td>
+        {% for q in value.qtds %}
         <td> {{ q }} </td>
         {% endfor %}
-        <td>  </td>
-        <td>  </td>
+        <td scope="row">{{ item.valor_unit }}</td>
+        <td scope="row">{{ value.qtd_item }}</td>
+        <td scope="row">{{ value.valor_item }}</td>
       </tr>
       {% endfor %}
-      <tr>
-        
-        {% for t in item.produto__tamanhos %}
-        <td scope="col"></th>
-        {% endfor %}
-        <th scope="col">Totais</th>
-        <th scope="col">{{ item.qtd_item }}</th>
-        <th scope="col">{{ item.valor_item }}</th>
-      </tr>
     </tbody>
+  {% endfor %}
 </table>
 <br />
 <br />
 <br />
-{% endfor %}
+
 
 <h2>Quantidade Total : {{ pedido.qtd_total }}</h2>
 <h2>Valor Total : R$ {{ pedido.valor_total }}</h2>

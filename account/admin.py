@@ -11,25 +11,25 @@ class AccountAdmin(BaseUserAdmin):
     add_form = UserCreationForm
 
     list_display = ('login', 'name','tipo_conta', 'is_staff',  'is_superuser')
-    list_filter = ('is_superuser',)
+    # list_filter = ('is_superuser',)
 
     fieldsets = (
         (None, {'fields': ('login', 'is_staff', 'is_superuser','is_admin', 'password')}),
         ('Personal info', {'fields': ('name', 'tipo_conta','email')}),
-        ('Groups', {'fields': ('groups',)}),
-        ('Permissions', {'fields': ('user_permissions',)}),
+        # ('Groups', {'fields': ('groups',)}),
+        ('Permissions', {'fields': ('groups', 'user_permissions')}),
     )
     add_fieldsets = (
         (None, {'fields': ('login', 'password1', 'password2','is_staff', 'is_superuser','is_admin')}),
-        ('Personal info', {'fields': ('name' 'tipo_conta','email')}),
-        ('Groups', {'fields': ('groups',)}),
-        ('Permissions', {'fields': ('user_permissions',)}),
+        ('Personal info', {'fields': ('name','tipo_conta','email')}),
+        # ('Groups', {'fields': ('groups',)}),
+        ('Permissions', {'fields': ('groups', 'user_permissions')}),
     )
 
     search_fields = ('login', 'name',)
     ordering = ('name',)
-    filter_horizontal = ()
-
+    # filter_horizontal = ()
+    
     def password_change(self, request, extra_context=None):
         """
         Handles the "change password" task -- both form display and validation.
@@ -45,7 +45,10 @@ class AccountAdmin(BaseUserAdmin):
         }
         if self.password_change_template is not None:
             defaults['template_name'] = self.password_change_template
-        return password_change(request, **defaults) 
+        return password_change(request, **defaults)
+
+
+   
 
 
 admin.site.register(Account, AccountAdmin)

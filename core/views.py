@@ -40,14 +40,24 @@ def verifica_query(query):
 
 
 
-def define_tipo_venda(colecao):
+def separa_colecoes(colecoes):
+
+    colecao_vigente = Parametro.objects.get(parametro="COLECAO_VIGENTE").valor
+    colecao_anterior = Parametro.objects.get(parametro="COLECAO_ANTERIOR").valor
     
-    if colecao == 'VAREJO':
-        return 'VAREJO'
-    elif colecao == Parametro.objects.get(parametro='COLECAO_VIGENTE').valor:
-        return 'COLEÇÃO NORMAL'
-    else:
-        return 'SALDOS'
+    colecoes_retorno = []
+    outras_colecoes_list = []
+    print(colecoes)
+    print([colecao_vigente,colecao_anterior])
+    for col in colecoes:
+        if col in [colecao_vigente,colecao_anterior]:
+            colecoes_retorno.append({'colecao':col,'lista':[col]})
+        else:
+            outras_colecoes_list.append(col)
+    if len(outras_colecoes_list)>0:
+        colecoes_retorno.append({'colecao':'OUTRAS','lista':outras_colecoes_list})
+
+    return list(colecoes_retorno)
 
 
 def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
@@ -75,7 +85,7 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
     # tabela=tabela_precos,**sort_params)
     queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
-    tabela=tabela_precos,**sort_params).distinct()
+    tabela=tabela_precos,**sort_params).distinct().order_by('produto__produto')
     queryset = list(queryset.values('preco','produto__produto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
@@ -93,7 +103,11 @@ def busca_produtos(request,tabela_precos,query):
 
     sort_params = {}
     tipo_query = verifica_query(query)
+
+    isBarCode = False
+
     if tipo_query=='barra':
+        isBarCode = True
         produto = ProdutoBarra.objects.get(barra=query).produto
         sort_params['produto']=produto
     elif tipo_query=='produto':
@@ -114,12 +128,12 @@ def busca_produtos(request,tabela_precos,query):
     # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
     # tabela=tabela_precos,**sort_params)
     queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
-    tabela=tabela_precos,**sort_params).distinct()
+    tabela=tabela_precos,**sort_params).distinct().order_by('produto__produto')
     queryset = list(queryset.values('preco','produto__produto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
     'produto__tamanhos','produto__colecao','produto__periodos'))
-    return queryset 
+    return queryset,isBarCode
 
 def verifica_session(request):
 
@@ -135,7 +149,7 @@ def verifica_session(request):
         clienteNome=cliente.nome
         isRep=False
     
-    return clienteId,clienteNome,isRep
+    return clienteId,clienteNome,isRep,user.tipo_conta.tipo_conta
 
 
 def pedido_pdf(pedido,lista_pedidos):
@@ -150,7 +164,7 @@ def pedido_pdf(pedido,lista_pedidos):
             'codigos':codigos
             }
 
-    template = get_template('core/pedido_pdf.html')
+    template = get_template('core/pedido_pdf_novo.html')
     html  = template.render(data)
 
     file_path = 'static/pdfs/'+str(pedido['id'])+'.pdf'
@@ -300,7 +314,7 @@ def carrinho_get(request):
         dados_periodo['periodo'] = per.periodo.desc_periodo
         dados_periodo['qtd_periodo'] = per.qtd_periodo
         dados_periodo['valor_periodo'] = per.valor_periodo
-        carrinho_item = PedidoItem.objects.filter(pedido_periodo=per)
+        carrinho_item = PedidoItem.objects.filter(pedido_periodo=per).order_by('produto__produto')
         dados_periodo['itens'] = list(
             carrinho_item.values('id','periodos_alteracao','produto__produto','produto__descricao','produto__sortido','produto__composicao',
             'produto__categoria','produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
@@ -308,8 +322,10 @@ def carrinho_get(request):
         dados_carrinho.append(dados_periodo)
     if len(dados_carrinho)==0:
         message = "Sem Itens no Carrinho"
+    
     return Response({'dados':dados_carrinho,'valor_total':carrinho.valor_total,
     'qtd_total':carrinho.qtd_total,'carrinhoId':carrinho.id,'is_teste':carrinho.is_teste,
+    'razao_social':carrinho.cliente.razao_social,
     'observacoes':carrinho.observacoes,'message':message,'confirmed':True})
 
 
@@ -371,6 +387,9 @@ def carrinho_update_qtds(request,id):
     item_carrinho.periodos_alteracao=periodos_alteracao
     item_carrinho.qtd_item=qtd_item
     item_carrinho.valor_item=valor_item
+    if item_carrinho.desconto>0:
+        item_carrinho.desconto = 0
+
     item_carrinho.save()
     pedido_atualiza_totais(item_carrinho.pedido_periodo.pedido.id)
 
@@ -401,7 +420,7 @@ def carrinho_triagem(dadosRequest,user):
             ultimos_carrinhos = Pedido.objects.filter(user=user,cliente__id=cliente,liberado_rep=False).order_by('-ultima_atualiz')
             if len(ultimos_carrinhos)>0:
                 return True,ultimos_carrinhos[0]              
-        else:
+        elif user.tipo_conta.tipo_conta != "visitante":
             #Se for cliente, busca o ultimo do user do cliente
             ultimos_carrinhos = Pedido.objects.filter(user=user,liberado_rep=False).order_by('-ultima_atualiz')
             if len(ultimos_carrinhos)>0:
@@ -454,13 +473,17 @@ def pedido_to_dict(ped):
     del ped['cliente']['_state']
     ped['valor_total'] = str(ped['valor_total'])
     ped['representante'] = Account.objects.get(id=ped['cliente']['representante_id']).__dict__['name']
+    ped['representante_email'] = Account.objects.get(id=ped['cliente']['representante_id']).__dict__['email']
     ped['data_criacao'] = ped['data_criacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
     ped['data_liberacao'] = ped['data_liberacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
     ped['ultima_atualiz'] = ped['ultima_atualiz'].strftime("%Y-%m-%d %H:%M:%S %Z")
-    itens_pedido = list(PedidoItem.objects.filter(pedido_periodo__pedido__id=ped['id']).values(
-        'pedido_periodo__periodo__periodo_faturamento','produto__produto','produto__tamanhos','qtds','desconto',
-        'preco','qtd_item','valor_item'))
+    itens_pedido = list(PedidoItem.objects.filter(
+        pedido_periodo__pedido__id=ped['id']).order_by('pedido_periodo__periodo__periodo_faturamento').values(
+        'pedido_periodo__periodo__periodo_faturamento','pedido_periodo__periodo__desc_periodo','produto__produto',
+        'produto__descricao','produto__tamanhos','qtds','desconto','preco','qtd_item','valor_item'))
     for it in itens_pedido:
+        it['periodo_faturamento_desc'] = it['pedido_periodo__periodo__desc_periodo']
+        del it['pedido_periodo__periodo__desc_periodo']
         it['periodo_faturamento'] = it['pedido_periodo__periodo__periodo_faturamento'].strftime("%Y-%m-%d")
         del it['pedido_periodo__periodo__periodo_faturamento']
         it['produto'] = it['produto__produto']
@@ -469,11 +492,57 @@ def pedido_to_dict(ped):
         it['qtds'] = json.loads(it['qtds'])
         it['desconto'] = str(it['desconto'])
         it['preco'] = str(it['preco'])
+        it['valor_unit'] = str(round(it['valor_item']/it['qtd_item'],2))
         it['valor_item'] = str(it['valor_item'])
+        
     ped['itens']=itens_pedido
 
     return ped
 
+
+def pedido_to_dict_pdf(ped):
+
+    #Transforma pedido em dicionario serializavel
+
+    ped['cliente'] = Cliente.objects.get(id=ped['cliente_id']).__dict__
+    ped['cliente']['valor_aberto'] = str(ped['cliente']['valor_aberto'])
+    ped['cliente']['comissao'] = str(ped['cliente']['comissao'])
+    del ped['cliente']['_state']
+    ped['valor_total'] = str(ped['valor_total'])
+    ped['representante'] = Account.objects.get(id=ped['cliente']['representante_id']).__dict__['name']
+    ped['representante_email'] = Account.objects.get(id=ped['cliente']['representante_id']).__dict__['email']
+    ped['data_criacao'] = ped['data_criacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
+    ped['data_liberacao'] = ped['data_liberacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
+    ped['ultima_atualiz'] = ped['ultima_atualiz'].strftime("%Y-%m-%d %H:%M:%S %Z")
+    itens_pedido = list(PedidoItem.objects.filter(
+        pedido_periodo__pedido__id=ped['id']).order_by('pedido_periodo__periodo__periodo_faturamento').values(
+        'pedido_periodo__periodo__periodo_faturamento','pedido_periodo__periodo__desc_periodo','produto__produto',
+        'produto__descricao','produto__tamanhos','qtds','desconto','preco','qtd_item','valor_item'))
+    for it in itens_pedido:
+        it['periodo_faturamento_desc'] = it['pedido_periodo__periodo__desc_periodo']
+        del it['pedido_periodo__periodo__desc_periodo']
+        it['periodo_faturamento'] = it['pedido_periodo__periodo__periodo_faturamento'].strftime("%Y-%m-%d")
+        del it['pedido_periodo__periodo__periodo_faturamento']
+        it['produto'] = it['produto__produto']
+        del it['produto__produto']
+        it['produto__tamanhos'] = json.loads(it['produto__tamanhos'])
+        it['valor_unit'] = round(it['valor_item']/it['qtd_item'],2)
+        dict_qtds = {}
+        qtds_item = json.loads(it['qtds'])
+        for qt in qtds_item:
+            dict_qtds[qt] = {}
+            dict_qtds[qt]['qtds'] = qtds_item[qt]
+            dict_qtds[qt]['qtd_item'] = sum(qtds_item[qt])
+            dict_qtds[qt]['valor_item'] = it['valor_unit']*dict_qtds[qt]['qtd_item']
+        it['valor_unit'] = str(it['valor_unit'])
+        it['qtds'] = dict_qtds
+        it['desconto'] = str(it['desconto'])
+        it['preco'] = str(it['preco'])      
+        it['valor_item'] = str(it['valor_item'])
+        
+    ped['itens']=itens_pedido
+
+    return ped
 
 @api_view(['GET','POST'])
 def pedidos_integracao(request):
@@ -508,15 +577,15 @@ def pedidos(request):
     if request.user.is_authenticated:
         if request.user.tipo_conta.is_rep:
             pedidos = Pedido.objects.select_related('cliente','user').filter(
-                cliente__representante__login=request.user.login,liberado_cliente=True).order_by('-id')
+                cliente__representante__login=request.user.login,liberado_cliente=True).order_by('liberado_rep','-id')
         
         else:
             pedidos = Pedido.objects.select_related('cliente','user').filter(
-                cliente__cnpj=request.user.login,liberado_cliente=True).order_by('-id')
+                cliente__cnpj=request.user.login,liberado_cliente=True).order_by('-id').order_by('liberado_rep','-id')
         
-        pedidos = pedidos.values('id','cliente__nome','cliente__desc_cond_pag',
+        pedidos = pedidos.values('id','cliente__nome','cliente__desc_cond_pag','cliente__cnpj',
         'cliente__razao_social','cliente__id','qtd_total','colecao',
-                'valor_total','user__name','liberado_cliente','data_criacao','is_teste',
+                'valor_total','user__name','liberado_cliente','data_criacao','is_teste','ultima_atualiz',
                 'data_liberacao','liberado_rep','enviado_fabrica','codigo_erp')
         return Response({'pedidos':list(pedidos),'confirmed':True})
         # return Response({'pedidos':list(pedidos),'confirmed':True})
@@ -553,21 +622,40 @@ def pedidos_save(request,id):
     else:
         return Response({'message':'Fazer Login','confirmed':False})
 
+@api_view(['GET','POST'])
+def pedidos_gera_pdf(request,id):
+
+    #Salva Pedido - Somente liberacao cliente - Para ser finalizado depois
+    
+    if request.user.is_authenticated:
+        pedido = Pedido.objects.get(id=id)
+        pedido.data_liberacao = datetime.now()
+        lista_pedidos = [pedido]
+        pedido = pedido_to_dict_pdf(pedido.__dict__)
+        file = pedido_pdf(pedido,lista_pedidos)
+        return Response({'file':file,'message':'Pedido Salvo','confirmed':True})
+    else:
+        return Response({'message':'Fazer Login','confirmed':False})
+
 
 @api_view(['GET','POST'])
 def pedido_delete(request,id):
 
-    # Deleta pedido caso o mesmo nao esteja pre-salvo(liberado cliente)
-    pedido = Pedido.objects.get(id=id)
+    return Response({'message':'Nao gerou exclusao','confirmed':True})
 
-    if (request.user==pedido.user or request.user.login==pedido.cliente.representante.login):
-        if pedido.liberado_cliente:
-            return Response({'message':'Nao gerou exclusao - Pedido estava salvo','confirmed':True})
-        else:
-            pedido.delete()      
-            return Response({'message':'Item excluida com sucesso','confirmed':True})
-    else:
-        return Response({'message':'nao foi possivel excluir','confirmed':False})
+    # ------ EXCLUSAO INATIVADA ------
+    # # Deleta pedido caso o mesmo nao esteja pre-salvo(liberado cliente)
+    # pedido = Pedido.objects.get(id=id)
+    
+
+    # if (request.user==pedido.user or request.user.login==pedido.cliente.representante.login):
+    #     if pedido.liberado_cliente:
+    #         return Response({'message':'Nao gerou exclusao','confirmed':True})
+    #     else:
+    #         pedido.delete()      
+    #         return Response({'message':'Item excluida com sucesso','confirmed':True})
+    # else:
+    #     return Response({'message':'nao foi possivel excluir','confirmed':False})
 
 
 @api_view(['GET','POST'])
@@ -577,11 +665,12 @@ def pedidos_retoma(request,id):
     if (request.user==pedido.user or request.user.login==pedido.cliente.representante.login):
         pedido.liberado_cliente=False
         pedido.save()
-        if 'carrinhoAtualId' in request.GET:
-            #Deleta carrinho atual caso nao esteja salvo (liberado_cliente)
-            pedido_anterior = Pedido.objects.get(id=request.GET['carrinhoAtualId'])
-            if not pedido_anterior.liberado_cliente:
-                pedido_anterior.delete()
+        # if 'carrinhoAtualId' in request.GET: --- Fazia exclusao do pedido caso nao estivesse salvo
+        #     #Deleta carrinho atual caso nao esteja salvo (liberado_cliente) - funcao cancelada
+        #     pedido_anterior = Pedido.objects.get(id=request.GET['carrinhoAtualId'])
+        #     if not pedido_anterior.liberado_cliente:
+        #         # pedido_anterior.delete()
+        #         print("pedido alterado")
         return Response({'message':'Pedido Retomado','confirmed':True})
     else:
         return Response({'message':'Fazer Login','confirmed':False})
@@ -602,7 +691,7 @@ def pedidos_processa(request,id):
             is_teste = pedido.is_teste
             observacoes = pedido.observacoes
             pedido_copia = copy.copy(pedido.__dict__)      
-            pedido_copia = pedido_to_dict(pedido_copia)
+            pedido_copia = pedido_to_dict_pdf(pedido_copia)
             lista_pedidos = pedido_separa(pedido)
 
             for ped in lista_pedidos:
@@ -626,11 +715,11 @@ def pedido_envia_email(pedido,lista_pedidos):
     if pedido['is_teste']:
         destinatario.append("comercial.greenish@grupoondas.com.br")
         destinatario.append("comercial@greenish.com.br")
-        destinatario.append(pedido['cliente']['representante']['email'])
+        destinatario.append(pedido['representante_email'])
         # destinatario.append("timur@greenish.com.br")
     else:
         destinatario.append(pedido['cliente']['email'])
-        destinatario.append(pedido['cliente']['representante']['email'])
+        destinatario.append(pedido['representante_email'])
     file = pedido_pdf(pedido,lista_pedidos)
     email = EmailMessage(
         'Greenish - Copia de pedido automática', 'Copia do pedido em anexo.', 'Greenish <b2b@grupoondas.com.br>', destinatario)
@@ -661,18 +750,20 @@ def pedido_separa(pedido):
 
     cols = Pedido.objects.filter(id=pedido.id).values('pedidoperiodo__pedidoitem__produto__colecao').distinct()
     cols = [c['pedidoperiodo__pedidoitem__produto__colecao'] for c in cols]
+    cols = separa_colecoes(cols)
+    print(cols)
     pedidos = []
     if len(cols)>1:
         for col in cols:
             #Cria novo pedido pra cada colecao
-            tipo_venda = "COLEÇÃO NORMAL" if col==colecao_vigente else "SALDOS"
-            novo_pedido = Pedido(cliente=pedido.cliente,user=pedido.user,tipo_venda=tipo_venda,colecao=col)
+            tipo_venda = "COLEÇÃO NORMAL" if col['colecao']==colecao_vigente else "SALDOS"
+            novo_pedido = Pedido(cliente=pedido.cliente,user=pedido.user,tipo_venda=tipo_venda,colecao=col['colecao'])
             novo_pedido.save()
                         
-            periodos_mudar = PedidoPeriodo.objects.filter(pedido=pedido,pedidoitem__produto__colecao=col)
+            periodos_mudar = PedidoPeriodo.objects.filter(pedido=pedido,pedidoitem__produto__colecao__in=col['lista'])
 
             for per in periodos_mudar:
-                itens_alterar = PedidoItem.objects.filter(pedido_periodo=per,produto__colecao=col)
+                itens_alterar = PedidoItem.objects.filter(pedido_periodo=per,produto__colecao__in=col['lista'])
                 novo_pedido_periodo,created = PedidoPeriodo.objects.get_or_create(periodo=per.periodo,pedido=novo_pedido)
                 novo_pedido_periodo.save()
                 itens_alterar.update(pedido_periodo=novo_pedido_periodo)
@@ -682,7 +773,7 @@ def pedido_separa(pedido):
             pedidos.append(novo_pedido)
         pedido.delete()
     else:
-        col = cols[0]
+        col = cols[0]['colecao']
         tipo_venda = "COLEÇÃO NORMAL" if col==colecao_vigente else "SALDOS"
         pedido.colecao=col
         pedido.tipo_venda=tipo_venda
@@ -891,24 +982,6 @@ def clientes_users_update(request):
         return Response({'message': 'Atualizado com Sucesso','confirmed':True})
     return Response({'message': 'Usuario nao e superuser','confirmed':False})
 
-# def login_api(request):
-    
-#     if request.user.is_authenticated:
-#         return Response({'sessionid': 'erro'})
-    
-#     if request.method == 'POST':
-#         try:
-#             username = request.POST['username']
-#             password = request.POST['password']
-#             user = authenticate(username=username, password=password)
-#             login(request, user)
-#             clienteId,clienteNome,isRep = verifica_session(request)
-#             return Response({'sessionid': request.session.session_key,
-#             'clienteId':clienteId,'clienteNome':clienteNome,
-#             'isRep':isRep,'username':user.name,'message':'Login realizado com sucesso','confirmed':True})
-#         except:
-#             return Response({'message': 'Usuario ou senha Incorretos','confirmed':False})
-
 def filterOptions(request):
     
     colecoes = list(ColecaoB2b.objects.filter(active=True).order_by('ordem').values_list('title', flat=True).distinct())
@@ -919,7 +992,7 @@ def filterOptions(request):
 
 @api_view(['GET'])
 def login_api(request):
-    
+    print(request.META)
     if request.user.is_authenticated:
 
         colecoes = list(ColecaoB2b.objects.filter(active=True).order_by('ordem').values_list('title', flat=True).distinct())
@@ -930,10 +1003,10 @@ def login_api(request):
         cats = Categorias.objects.get(id=1)
         cats = json.loads(cats.dados)
 
-        clienteId,clienteNome,isRep = verifica_session(request)
+        clienteId,clienteNome,isRep,tipo_conta = verifica_session(request)
 
         return Response({'sessionid': request.session.session_key,
-        'clienteId':clienteId,'clienteNome':clienteNome,'isRep':isRep,
+        'clienteId':clienteId,'clienteNome':clienteNome,'isRep':isRep,'tipo_conta':tipo_conta,
         'username':request.user.name,'colecoes':colecoes,'periodos':periodos,'cats':cats,
         'message':'Login realizado com sucesso','confirmed':True})
     else:
@@ -958,7 +1031,7 @@ def periodos_api(request):
         produto = request.GET['produto']
         periodo = request.GET['periodo']
         if periodo != '':
-            dados = list(ProdutoPeriodo.objects.filter(produto__produto=produto,periodo__desc_periodo=periodo).values())
+            dados = list(ProdutoPeriodo.objects.filter(produto__produto=produto,periodo__desc_periodo=periodo,qtd_total__gt=0).values())
             if len(dados)>0:
                 dados = dados[0]
                 dados = json.loads(dados['dados'])   
@@ -983,7 +1056,7 @@ def produtos(request,linha,categoria,subcategoria=None):
         tabela_precos = cliente.tabela_precos
         
         queryset = get_produtos(request,tabela_precos,linha,categoria,subcategoria)
-        return Response({'lista':queryset})
+        return Response({'lista':queryset,'isBarCode':False,'confirmed':True})
            
     else:
         return Response({'message':'Fazer Login','confirmed':False})
@@ -1000,8 +1073,8 @@ def busca(request):
         query = None
         if 'query' in request.GET:
             query = request.GET['query']
-        queryset = busca_produtos(request,tabela_precos,query)
-        return Response({'lista':queryset,'confirmed':True})
+        queryset,isBarCode = busca_produtos(request,tabela_precos,query)
+        return Response({'lista':queryset,'isBarCode':isBarCode,'confirmed':True})
            
     else:
         return Response({'message':'Fazer Login','confirmed':False})
@@ -1087,6 +1160,39 @@ def produtos_update(request):
         ultima_atualizacao.save()
         return Response({'message':'Atualizado com sucesso','errors':errors_list,'confirmed':True})
     return Response({'message':'Erro na atualizacao','confirmed':False})
+
+
+@api_view(['GET','POST'])
+def produtos_cadastra_promo(request):
+
+    #View para integracao de Produtos
+
+    if request.user.is_superuser:
+        errors_list = []
+        itens = request.POST['dados']
+        itens = json.loads(itens)
+
+        for item in itens:
+            try:
+                promocao = Promocao.objects.get(descricao=item['PROMOCAO'])
+            except:
+                errors_list.append((item['PRODUTO'],'Promocao nao cadastrada'))
+                continue
+            try:
+                produto = Produto.objects.get(produto=item['PRODUTO'])
+            except:
+                errors_list.append((item['PRODUTO'],'Produto nao cadastrado'))
+                continue
+            try:
+                PromocaoProduto.objects.get(promocao=promocao,produto=produto)
+                continue
+            except:
+                promprod = PromocaoProduto(promocao=promocao,produto=produto)
+                promprod.save()
+
+        return Response({'errors':errors_list,'confirmed':True})
+    return Response({'message':'Erro na atualizacao','confirmed':False})
+
 
 @api_view(['GET','POST'])
 def barras(request):

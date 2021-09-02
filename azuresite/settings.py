@@ -135,7 +135,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -143,6 +143,10 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"), # your static/ files folder
+]
 
 CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
@@ -167,3 +171,4 @@ EMAIL_HOST_USER = 'b2b@grupoondas.com.br'
 EMAIL_HOST_PASSWORD = 'Ondas@#2021'
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = True
+
