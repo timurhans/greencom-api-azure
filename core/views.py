@@ -81,11 +81,19 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
             if periodo != "Todos":
                 periodo = Periodo.objects.get(desc_periodo=periodo)
                 sort_params['produto__produtoperiodo__periodo']=periodo
+    
+    if 'order_by' in request.GET:
+        order_by = request.GET['order_by']
+        if order_by=='estoque':
+            order_by = 'qtd_total' #adequacao da nomenclatura do campo - alterar no model posteriormente
+        order_by = 'produto__'+order_by
+    else:
+        order_by = 'produto__produto'
 
     # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
     # tabela=tabela_precos,**sort_params)
     queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
-    tabela=tabela_precos,**sort_params).distinct().order_by('produto__produto')
+    tabela=tabela_precos,**sort_params).distinct().order_by(order_by)
     queryset = list(queryset.values('preco','produto__produto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
@@ -1137,8 +1145,11 @@ def produtos_update(request):
                 periodos = p['periodos']
                 prods_periodo_excluir = ProdutoPeriodo.objects.filter(produto__produto=produto).exclude(periodo__desc_periodo__in=lista_periodos)
                 prods_periodo_excluir.delete()
+                qtd_total_produto = 0
                 for periodo in periodos.keys():
                     qtd_total_periodo = sum([x['qtd_total'] for x in periodos[periodo]])
+                    if qtd_total_periodo>qtd_total_produto:
+                        qtd_total_produto = qtd_total_produto # Substitui qtd total produto
                     try:
                         prod_periodo = ProdutoPeriodo.objects.get(produto__produto=produto,periodo__desc_periodo=periodo)
                         prod_periodo.dados = json.dumps(periodos[periodo])
@@ -1150,6 +1161,12 @@ def produtos_update(request):
                         dados = json.dumps(periodos[periodo]),qtd_total = qtd_total_periodo)
                     prod_periodo.save()
                 
+                try:
+                    produto.qtd_total = qtd_total_produto
+                    produto.save()
+                except:
+                    errors_list.append(produto.produto)
+                    continue                
                 #deleta ProdutosPeriodo fora dos da ultima atualizacao
                 ProdutoPeriodo.objects.filter(produto__produto=produto).exclude(periodo__desc_periodo__in=periodos).delete()
 

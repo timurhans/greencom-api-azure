@@ -15,3 +15,4 @@ params/migrations/*
 !params/migrations/__init__.py
 db.sqlite3
 ecomb2b/settings.py
+venv/*
