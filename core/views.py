@@ -85,8 +85,9 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     if 'order_by' in request.GET:
         order_by = request.GET['order_by']
         if order_by=='estoque':
-            order_by = 'qtd_total' #adequacao da nomenclatura do campo - alterar no model posteriormente
-        order_by = 'produto__'+order_by
+            order_by = '-produto__qtd_total' #adequacao da nomenclatura do campo - alterar no model posteriormente
+        else:
+            order_by = 'produto__produto'
     else:
         order_by = 'produto__produto'
 
@@ -1149,7 +1150,7 @@ def produtos_update(request):
                 for periodo in periodos.keys():
                     qtd_total_periodo = sum([x['qtd_total'] for x in periodos[periodo]])
                     if qtd_total_periodo>qtd_total_produto:
-                        qtd_total_produto = qtd_total_produto # Substitui qtd total produto
+                        qtd_total_produto = qtd_total_periodo # Substitui qtd total produto
                     try:
                         prod_periodo = ProdutoPeriodo.objects.get(produto__produto=produto,periodo__desc_periodo=periodo)
                         prod_periodo.dados = json.dumps(periodos[periodo])
