@@ -924,12 +924,13 @@ def reps_users_update(request):
                 try:
                     representante = Account.objects.get(login=r['CNPJ'])
                     representante.email=r['EMAIL']
+                    representante.save()
                 except Account.DoesNotExist:
                     tipo_conta = AccountType.objects.get(tipo_conta="representante")
                     representante = Account(login=r['CNPJ'], name = r['REPRESENTANTE'],
                     tipo_conta=tipo_conta,email=r['EMAIL'])
                     representante.set_password(r['CNPJ'])
-                representante.save()
+                    representante.save()
         return Response({'message': 'Atualizado com Sucesso','confirmed':True})
     return Response({'message': 'Nao e superuser','confirmed':False})
 
