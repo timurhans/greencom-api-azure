@@ -67,6 +67,7 @@ class Produto(models.Model):
     periodos = models.TextField()
     precos = models.TextField()
     qtd_total = models.IntegerField(default=0, null=False, blank=False)
+    desconto = models.DecimalField(max_digits=2, decimal_places=2,null=False,blank=False)
     def __str__(self):
         return str(self.produto)
 
@@ -164,3 +165,10 @@ class PromocaoCondicao(models.Model):
     desconto = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False)
     def __str__(self):
         return str(self.promocao)
+
+
+# class DescontoProduto(models.Model):
+#     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
+#     desconto = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False)
+#     def __str__(self):
+#         return self.produto.produto+" - "+str(self.desconto)

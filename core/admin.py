@@ -40,7 +40,8 @@ class PromocaoProdutoAdmin(admin.ModelAdmin):
 
 class ProdutoAdmin(admin.ModelAdmin):
 
-    list_display = ('produto','descricao','atualizacao','categoria','subcategoria')
+    list_display = ('produto','desconto','colecao','categoria','subcategoria','atualizacao')
+    list_editable = ['desconto',] 
 
     search_fields = ('produto',)
     ordering = ('produto',)
@@ -97,6 +98,14 @@ class PedidoItemAdmin(admin.ModelAdmin):
     ordering = ('id',)
     filter_horizontal = ()
 
+# class DescontoProdutoAdmin(admin.ModelAdmin):
+
+#     list_display = ('produto','desconto')
+#     list_editable = ['desconto',] 
+
+#     search_fields = ('produto__produto',)
+#     ordering = ('produto','desconto',)
+
 
 admin.site.register(Pedido,PedidoAdmin)
 admin.site.register(PedidoPeriodo,PedidoPeriodoAdmin)
@@ -111,3 +120,4 @@ admin.site.register(PromocaoCondicao,PromocaoCondicaoAdmin)
 admin.site.register(PromocaoProduto,PromocaoProdutoAdmin)
 admin.site.register(Categorias)
 admin.site.register(Cliente,ClienteAdmin)
+# admin.site.register(DescontoProduto,DescontoProdutoAdmin)
