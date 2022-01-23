@@ -86,6 +86,8 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
         order_by = request.GET['order_by']
         if order_by=='estoque':
             order_by = '-produto__qtd_total' #adequacao da nomenclatura do campo - alterar no model posteriormente
+        elif order_by=='desconto':
+            order_by = '-produto__desconto'
         else:
             order_by = 'produto__produto'
     else:
@@ -95,7 +97,7 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     # tabela=tabela_precos,**sort_params)
     queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
     tabela=tabela_precos,**sort_params).distinct().order_by(order_by)
-    queryset = list(queryset.values('preco','produto__produto','produto__descricao',
+    queryset = list(queryset.values('preco','produto__produto','produto__desconto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
     'produto__tamanhos','produto__colecao','produto__periodos'))
@@ -210,7 +212,8 @@ def carrinho_add(request):
     post = post.decode("utf-8").replace("'", '"')
     post = json.loads(post)
     qtd_item = post['qtd_total']
-    valor_item = qtd_item*decimal.Decimal((post['produto']['preco']))
+    preco = post['produto']['preco']
+    
 
     status,response = carrinho_triagem(post,request.user)
 
@@ -234,7 +237,14 @@ def carrinho_add(request):
         periodos_alteracao = carrinho_verifica_periodos_alteracao(qtds_tratadas,produto)
         qtds_tratadas = json.dumps(qtds_tratadas)
 
-        carrinhoItem = PedidoItem(pedido_periodo=carrinhoPeriodo,preco=post['produto']['preco'],
+        if produto.desconto>0:
+            desconto = round(preco*float(produto.desconto),2)
+            valor_item = qtd_item*decimal.Decimal(preco-desconto)
+        else:
+            desconto = 0
+            valor_item = qtd_item*decimal.Decimal(preco)
+
+        carrinhoItem = PedidoItem(pedido_periodo=carrinhoPeriodo,preco=preco,desconto=desconto,
         qtd_item=qtd_item,valor_item=valor_item,produto=produto,qtds=qtds_tratadas,periodos_alteracao=periodos_alteracao)
         carrinhoItem.save()
         carrinhoPeriodo.qtd_periodo = carrinhoPeriodo.qtd_periodo+qtd_item
@@ -852,7 +862,7 @@ def promocoes_remove(request,id_pedido):
     pedido = Pedido.objects.get(id=id_pedido)
     if request.user.tipo_conta.is_rep and request.user==pedido.user:
 
-        itens_pedido = PedidoItem.objects.filter(desconto__gt=0,pedido_periodo__pedido__id=id_pedido)
+        itens_pedido = PedidoItem.objects.filter(desconto__gt=0,produto__desconto__lte=0,pedido_periodo__pedido__id=id_pedido)
         itens_pedido.update(desconto=0,valor_item=F('preco')*F('qtd_item'))
                      
         pedido_atualiza_totais(id_pedido)
