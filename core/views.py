@@ -1140,6 +1140,7 @@ def produtos_update(request):
                     tamanhos = json.dumps(json.loads(p['produto']['tams'])),colecao = p['produto']['colecao'],
                     periodos = lista_periodos,precos = p['produto']['precos'])
                 
+
                 try:
                     produto.save()
                 except:

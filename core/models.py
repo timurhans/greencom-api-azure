@@ -67,7 +67,7 @@ class Produto(models.Model):
     periodos = models.TextField()
     precos = models.TextField()
     qtd_total = models.IntegerField(default=0, null=False, blank=False)
-    desconto = models.DecimalField(max_digits=2, decimal_places=2,null=False,blank=False)
+    desconto = models.DecimalField(default=0,max_digits=2, decimal_places=2,null=False,blank=False)
     def __str__(self):
         return str(self.produto)
 
