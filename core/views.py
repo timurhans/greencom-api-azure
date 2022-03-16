@@ -164,8 +164,6 @@ def verifica_session(request):
 
 
 def pedido_pdf(pedido,lista_pedidos):
-    # pedido = pedido.__dict__
-    # pedido = pedido_to_dict(pedido)
     codigos = [str(ped.id) for ped in lista_pedidos]
     codigos = ','.join(codigos)
 
@@ -496,6 +494,8 @@ def pedido_to_dict(ped):
     ped['data_criacao'] = ped['data_criacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
     ped['data_liberacao'] = ped['data_liberacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
     ped['ultima_atualiz'] = ped['ultima_atualiz'].strftime("%Y-%m-%d %H:%M:%S %Z")
+    ped['flag_ok'] = True
+    ped['erro_integracao'] = ""
     itens_pedido = list(PedidoItem.objects.filter(
         pedido_periodo__pedido__id=ped['id']).order_by('pedido_periodo__periodo__periodo_faturamento').values(
         'pedido_periodo__periodo__periodo_faturamento','pedido_periodo__periodo__desc_periodo','produto__produto',
@@ -511,7 +511,25 @@ def pedido_to_dict(ped):
         it['qtds'] = json.loads(it['qtds'])
         it['desconto'] = str(it['desconto'])
         it['preco'] = str(it['preco'])
-        it['valor_unit'] = str(round(it['valor_item']/it['qtd_item'],2))
+
+        # VERIFICA ERRRO VALOR_UNIT
+
+        try:
+            it['valor_unit'] = str(round(it['valor_item']/it['qtd_item'],2))
+        except:
+
+            # APONTA ERRO INTEGRACAO
+
+            ped['flag_ok'] = False
+            ped['erro_integracao'] = "PEDIDO:{id_pedido} ; CLIENTE:{cliente} ; PRODUTO: {produto}".format(
+                id_pedido=ped['id'],cliente=ped['cliente']['nome'],produto=it['produto'])
+
+            print('-------ERRO ITEM PEDIDO------------')
+            print("PEDIDO:{id_pedido} ; CLIENTE:{cliente} ; PRODUTO: {produto}".format(
+                id_pedido=ped['id'],cliente=ped['cliente']['nome'],produto=it['produto'])
+                )
+            it['valor_unit'] = 0
+        
         it['valor_item'] = str(it['valor_item'])
         
     ped['itens']=itens_pedido
