@@ -15,8 +15,8 @@ import decimal
 #APP IMPORTS
 from .models import (Produto,ProdutoPreco,ProdutoPeriodo,ProdutoBarra,
         Categorias,Cliente,Periodo,Promocao,PromocaoCondicao,PromocaoProduto,
-        Pedido,PedidoPeriodo,PedidoItem)
-from params.models import (ColecaoErp,ColecaoB2b,Parametro,Banner)
+        Pedido,PedidoPeriodo,PedidoItem,Banner)
+from params.models import (ColecaoErp,ColecaoB2b,Parametro)
 from account.models import (Account,AccountType)
 # THIRD PARTY IMPORTS
 from xhtml2pdf import pisa
@@ -1058,7 +1058,7 @@ def logout_view(request):
 
 @api_view(['GET'])
 def home(request):
-    banners = list(Banner.objects.all().values().order_by('ordem'))
+    banners = list(Banner.objects.order_by('ordem').values())
     return Response({'banners':banners})
 
 
@@ -1269,3 +1269,8 @@ def barras(request):
 
 
 
+
+@api_view(['GET'])
+def banners_home(request):
+    banners = list(Banner.objects.order_by('ordem').values())
+    return Response({'banners': banners,'confirmed':True})

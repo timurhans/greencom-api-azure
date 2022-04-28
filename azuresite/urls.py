@@ -26,7 +26,7 @@ promocoes,promocoes_computa,promocoes_remove,
 # generate_PDF,pedidos,
 produtos,home,clientes,busca,
 categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
-carrinho_delete_item,produtos_update,produtos_cadastra_promo)
+carrinho_delete_item,produtos_update,produtos_cadastra_promo,banners_home)
 from params.views import (params,filterOptions)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
@@ -59,6 +59,7 @@ urlpatterns = [
     path('produtos_cadastra_promo/', produtos_cadastra_promo),
     path('barras/', barras),
     path('params/', params),
+    path('banners_home/', banners_home),
     path('filterOptions/', filterOptions),
     path('clientes_users_update/', clientes_users_update),
     path('reps_users_update/', reps_users_update),

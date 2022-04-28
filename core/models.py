@@ -167,6 +167,13 @@ class PromocaoCondicao(models.Model):
         return str(self.promocao)
 
 
+class Banner(models.Model):
+    ordem = models.IntegerField()
+    link = models.CharField(max_length=1024,null=False, blank=False)
+    url_imagem = models.CharField(max_length=1024,null=False, blank=False)
+    def __str__(self):
+        return str(self.link)
+
 # class DescontoProduto(models.Model):
 #     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
 #     desconto = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False)

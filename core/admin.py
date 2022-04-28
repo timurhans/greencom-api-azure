@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (Categorias,Cliente,
 Promocao,PromocaoCondicao,PromocaoProduto,Produto,ProdutoPreco,
-ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo)
+ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,Banner)
 # Register your models here.
 
 class ClienteAdmin(admin.ModelAdmin):
@@ -119,5 +119,6 @@ admin.site.register(Promocao,PromocaoAdmin)
 admin.site.register(PromocaoCondicao,PromocaoCondicaoAdmin)
 admin.site.register(PromocaoProduto,PromocaoProdutoAdmin)
 admin.site.register(Categorias)
+admin.site.register(Banner)
 admin.site.register(Cliente,ClienteAdmin)
 # admin.site.register(DescontoProduto,DescontoProdutoAdmin)
