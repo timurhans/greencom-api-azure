@@ -186,7 +186,7 @@ class ListaProduto(models.Model):
     lista = models.ForeignKey(Lista,null=False,blank=False, on_delete=models.CASCADE)
     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
     def __str__(self):
-        return str(self.lista+" - "+self.produto.produto)
+        return str(self.lista.codigo+" - "+self.produto.produto)
 
 # class DescontoProduto(models.Model):
 #     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
