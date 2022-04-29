@@ -1,8 +1,17 @@
 from django.contrib import admin
 from .models import (Categorias,Cliente,
 Promocao,PromocaoCondicao,PromocaoProduto,Produto,ProdutoPreco,
-ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,Banner)
+ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,Banner,Lista,ListaProduto)
 # Register your models here.
+
+class ListaProdutoTabularInline(admin.TabularInline):
+    model = ListaProduto
+
+class ListaAdmin(admin.ModelAdmin):
+    inlines = [ListaProdutoTabularInline]
+    class Meta:
+        model = Lista
+
 
 class ClienteAdmin(admin.ModelAdmin):
 
@@ -121,4 +130,5 @@ admin.site.register(PromocaoProduto,PromocaoProdutoAdmin)
 admin.site.register(Categorias)
 admin.site.register(Banner)
 admin.site.register(Cliente,ClienteAdmin)
+admin.site.register(Lista,ListaAdmin)
 # admin.site.register(DescontoProduto,DescontoProdutoAdmin)

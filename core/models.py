@@ -174,6 +174,20 @@ class Banner(models.Model):
     def __str__(self):
         return str(self.link)
 
+
+class Lista(models.Model):
+    codigo = models.CharField(max_length=30,null=False, blank=False,unique=True)
+    ativo = models.BooleanField(default=True)
+    def __str__(self):
+        return str(self.codigo)
+    
+
+class ListaProduto(models.Model):
+    lista = models.ForeignKey(Lista,null=False,blank=False, on_delete=models.CASCADE)
+    produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
+    def __str__(self):
+        return str(self.lista+" - "+self.produto.produto)
+
 # class DescontoProduto(models.Model):
 #     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
 #     desconto = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False)

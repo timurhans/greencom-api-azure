@@ -15,7 +15,7 @@ import decimal
 #APP IMPORTS
 from .models import (Produto,ProdutoPreco,ProdutoPeriodo,ProdutoBarra,
         Categorias,Cliente,Periodo,Promocao,PromocaoCondicao,PromocaoProduto,
-        Pedido,PedidoPeriodo,PedidoItem,Banner)
+        Pedido,PedidoPeriodo,PedidoItem,Banner,Lista,ListaProduto)
 from params.models import (ColecaoErp,ColecaoB2b,Parametro)
 from account.models import (Account,AccountType)
 # THIRD PARTY IMPORTS
@@ -104,6 +104,53 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     
     return queryset
 
+
+
+def get_produtos_lista(request,tabela_precos,lista):
+    # ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
+    # ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
+
+    lista_obj = Lista.objects.get(codigo=lista)
+    lista_produtos = list(ListaProduto.objects.filter(lista=lista_obj).values_list('produto__produto', flat=True))
+    print(lista_produtos)
+    
+
+    sort_params = {}
+    sort_params['produto__produto__in']=lista_produtos
+    if 'colecao' in request.GET:
+        colecao = request.GET['colecao']
+        if colecao is not None:
+            if colecao != "Todas":
+                cols_erp = list(ColecaoErp.objects.filter(colecaoB2b__active=True,colecaoB2b__title=colecao).values_list('codigo', flat=True).distinct())
+                sort_params['produto__colecao__in']=cols_erp
+    if 'periodo' in request.GET:
+        periodo = request.GET['periodo']
+        if periodo is not None:
+            if periodo != "Todos":
+                periodo = Periodo.objects.get(desc_periodo=periodo)
+                sort_params['produto__produtoperiodo__periodo']=periodo
+    
+    if 'order_by' in request.GET:
+        order_by = request.GET['order_by']
+        if order_by=='estoque':
+            order_by = '-produto__qtd_total' #adequacao da nomenclatura do campo - alterar no model posteriormente
+        elif order_by=='desconto':
+            order_by = '-produto__desconto'
+        else:
+            order_by = 'produto__produto'
+    else:
+        order_by = 'produto__produto'
+
+    # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
+    # tabela=tabela_precos,**sort_params)
+    queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
+    tabela=tabela_precos,**sort_params).distinct().order_by(order_by)
+    queryset = list(queryset.values('preco','produto__produto','produto__desconto','produto__descricao',
+    'produto__sortido','produto__composicao','produto__linha','produto__categoria',
+    'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
+    'produto__tamanhos','produto__colecao','produto__periodos'))
+    
+    return queryset
 
 def busca_produtos(request,tabela_precos,query):
 
@@ -1094,6 +1141,24 @@ def produtos(request,linha,categoria,subcategoria=None):
         tabela_precos = cliente.tabela_precos
         
         queryset = get_produtos(request,tabela_precos,linha,categoria,subcategoria)
+        return Response({'lista':queryset,'isBarCode':False,'confirmed':True})
+           
+    else:
+        return Response({'message':'Fazer Login','confirmed':False})
+
+@api_view(['GET','POST'])
+def produtos_lista(request,lista):
+    if request.user.is_authenticated:
+
+        if 'clienteId' not in request.GET:
+            return Response({'message':'Defina um cliente','confirmed':False})
+            
+        cliente = request.GET['clienteId']
+        cliente =  Cliente.objects.get(id=cliente)
+        
+        tabela_precos = cliente.tabela_precos
+        
+        queryset = get_produtos_lista(request,tabela_precos,lista)
         return Response({'lista':queryset,'isBarCode':False,'confirmed':True})
            
     else:
