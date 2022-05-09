@@ -132,6 +132,7 @@ class PedidoItem(models.Model):
     qtd_item = models.IntegerField()
     valor_item = models.DecimalField(max_digits=8, decimal_places=2)
     periodos_alteracao = models.TextField(default="",blank=True,null=True)
+    observacao_item = models.CharField(max_length=150,blank=True,null=True,default="")
     def __str__(self):
         return str(self.pedido_periodo.pedido.cliente)+' - '+self.produto.produto
 

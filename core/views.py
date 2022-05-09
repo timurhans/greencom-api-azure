@@ -258,6 +258,7 @@ def carrinho_add(request):
     post = json.loads(post)
     qtd_item = post['qtd_total']
     preco = post['produto']['preco']
+    observacao_item = post['observacao_item']
     
 
     status,response = carrinho_triagem(post,request.user)
@@ -290,7 +291,7 @@ def carrinho_add(request):
             valor_item = qtd_item*decimal.Decimal(preco)
 
         carrinhoItem = PedidoItem(pedido_periodo=carrinhoPeriodo,preco=preco,desconto=desconto,
-        qtd_item=qtd_item,valor_item=valor_item,produto=produto,qtds=qtds_tratadas,periodos_alteracao=periodos_alteracao)
+        qtd_item=qtd_item,valor_item=valor_item,produto=produto,qtds=qtds_tratadas,periodos_alteracao=periodos_alteracao,observacao_item=observacao_item)
         carrinhoItem.save()
         carrinhoPeriodo.qtd_periodo = carrinhoPeriodo.qtd_periodo+qtd_item
         carrinhoPeriodo.valor_periodo = carrinhoPeriodo.valor_periodo+valor_item
@@ -382,7 +383,7 @@ def carrinho_get(request):
         dados_periodo['itens'] = list(
             carrinho_item.values('id','periodos_alteracao','produto__produto','produto__descricao','produto__sortido','produto__composicao',
             'produto__categoria','produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
-            'produto__tamanhos','produto__colecao','produto__periodos','qtds','preco','desconto','qtd_item','valor_item'))
+            'produto__tamanhos','produto__colecao','produto__periodos','qtds','preco','desconto','qtd_item','valor_item','observacao_item'))
         dados_carrinho.append(dados_periodo)
     if len(dados_carrinho)==0:
         message = "Sem Itens no Carrinho"
@@ -443,6 +444,7 @@ def carrinho_update_qtds(request,id):
     qtd_item = post['qtd_total']
     valor_item = qtd_item*decimal.Decimal((post['produto']['preco']))
     item_carrinho = PedidoItem.objects.get(id=id)
+    observacao_item = post['observacao_item']
              
     qtds_tratadas = carrinho_trata_qtds_post(post['qtds'])
     periodos_alteracao = carrinho_verifica_periodos_alteracao(qtds_tratadas,item_carrinho.produto)
@@ -451,6 +453,7 @@ def carrinho_update_qtds(request,id):
     item_carrinho.periodos_alteracao=periodos_alteracao
     item_carrinho.qtd_item=qtd_item
     item_carrinho.valor_item=valor_item
+    item_carrinho.observacao_item=observacao_item
     if item_carrinho.desconto>0:
         item_carrinho.desconto = 0
 
@@ -546,7 +549,7 @@ def pedido_to_dict(ped):
     itens_pedido = list(PedidoItem.objects.filter(
         pedido_periodo__pedido__id=ped['id']).order_by('pedido_periodo__periodo__periodo_faturamento').values(
         'pedido_periodo__periodo__periodo_faturamento','pedido_periodo__periodo__desc_periodo','produto__produto',
-        'produto__descricao','produto__tamanhos','qtds','desconto','preco','qtd_item','valor_item'))
+        'produto__descricao','produto__tamanhos','qtds','desconto','preco','qtd_item','valor_item','observacao_item'))
     for it in itens_pedido:
         it['periodo_faturamento_desc'] = it['pedido_periodo__periodo__desc_periodo']
         del it['pedido_periodo__periodo__desc_periodo']
@@ -601,7 +604,7 @@ def pedido_to_dict_pdf(ped):
     itens_pedido = list(PedidoItem.objects.filter(
         pedido_periodo__pedido__id=ped['id']).order_by('pedido_periodo__periodo__periodo_faturamento').values(
         'pedido_periodo__periodo__periodo_faturamento','pedido_periodo__periodo__desc_periodo','produto__produto',
-        'produto__descricao','produto__tamanhos','qtds','desconto','preco','qtd_item','valor_item'))
+        'produto__descricao','produto__tamanhos','qtds','desconto','preco','qtd_item','valor_item','observacao_item'))
     for it in itens_pedido:
         it['periodo_faturamento_desc'] = it['pedido_periodo__periodo__desc_periodo']
         del it['pedido_periodo__periodo__desc_periodo']
@@ -610,7 +613,10 @@ def pedido_to_dict_pdf(ped):
         it['produto'] = it['produto__produto']
         del it['produto__produto']
         it['produto__tamanhos'] = json.loads(it['produto__tamanhos'])
-        it['valor_unit'] = round(it['valor_item']/it['qtd_item'],2)
+        if it['qtd_item']>0:
+            it['valor_unit'] = round(it['valor_item']/it['qtd_item'],2)
+        else:
+            it['valor_unit'] = 0
         dict_qtds = {}
         qtds_item = json.loads(it['qtds'])
         for qt in qtds_item:
