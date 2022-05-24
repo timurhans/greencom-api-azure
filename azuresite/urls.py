@@ -26,7 +26,7 @@ promocoes,promocoes_computa,promocoes_remove,
 # generate_PDF,pedidos,
 produtos,home,clientes,busca,
 categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
-carrinho_delete_item,produtos_update,produtos_cadastra_promo,produtos_lista)
+carrinho_delete_item,produtos_update,produtos_cadastra_promo,produtos_lista,pedido_view_get)
 from params.views import (params,filterOptions)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
@@ -48,6 +48,7 @@ urlpatterns = [
     path('pedidos/gera_pdf/<id>/', pedidos_gera_pdf),
     path('pedidos/retoma/<id>/', pedidos_retoma),
     path('pedidos/processa/<id>/', pedidos_processa),
+    path('pedido/<idPedido>/', pedido_view_get),
     path('pedidos_integracao/', pedidos_integracao),
     path('promocoes/', promocoes),
     path('promocoes/<id_pedido>/', promocoes_computa),

@@ -234,6 +234,44 @@ def pedido_pdf(pedido,lista_pedidos):
     return file_path
 
 # ----------------------- VIEWS --------------------------------
+@api_view(['GET'])
+def pedido_view_get(request,idPedido):
+
+
+    if not request.user.is_authenticated:
+        return Response({'message': 'Fazer Login','confirmed':False})
+        
+
+    pedido = Pedido.objects.get(id=idPedido)
+    
+    dados_pedido = []
+    message = ""
+    periodos = PedidoPeriodo.objects.filter(pedido=pedido).order_by('periodo__periodo_faturamento')
+    for per in periodos:
+        dados_periodo = {}
+        dados_periodo['periodo'] = per.periodo.desc_periodo
+        dados_periodo['qtd_periodo'] = per.qtd_periodo
+        dados_periodo['valor_periodo'] = per.valor_periodo
+        pedido_item = PedidoItem.objects.filter(pedido_periodo=per).order_by('produto__produto')
+        dados_periodo['itens'] = list(
+            pedido_item.values('id','periodos_alteracao','produto__produto','produto__descricao','produto__sortido','produto__composicao',
+            'produto__categoria','produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
+            'produto__tamanhos','produto__colecao','produto__periodos','qtds','preco','desconto','qtd_item','valor_item','observacao_item'))
+        dados_pedido.append(dados_periodo)
+    if len(dados_pedido)==0:
+        message = "Sem Itens no Pedido"
+    
+    print(dados_pedido)
+    return Response({'dados':dados_pedido,'valor_total':pedido.valor_total,
+    'qtd_total':pedido.qtd_total,'carrinhoId':pedido.id,'is_teste':pedido.is_teste,
+    'razao_social':pedido.cliente.razao_social,
+    'observacoes':pedido.observacoes,'message':message,'confirmed':True})
+
+
+
+
+
+
 
 @api_view(['GET','POST'])
 def carrinho(request):
