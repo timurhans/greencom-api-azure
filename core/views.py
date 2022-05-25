@@ -101,6 +101,8 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
     'produto__tamanhos','produto__colecao','produto__periodos'))
+
+
     
     return queryset
 
@@ -187,7 +189,7 @@ def busca_produtos(request,tabela_precos,query):
     # tabela=tabela_precos,**sort_params)
     queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
     tabela=tabela_precos,**sort_params).distinct().order_by('produto__produto')
-    queryset = list(queryset.values('preco','produto__produto','produto__descricao',
+    queryset = list(queryset.values('preco','produto__produto','produto__desconto','produto__descricao',
     'produto__sortido','produto__composicao','produto__linha','produto__categoria',
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
     'produto__tamanhos','produto__colecao','produto__periodos'))
