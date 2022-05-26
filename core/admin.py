@@ -6,12 +6,33 @@ ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,Banner,Lista
 
 class ListaProdutoTabularInline(admin.TabularInline):
     model = ListaProduto
+    extra = 0
+
 
 class ListaAdmin(admin.ModelAdmin):
     inlines = [ListaProdutoTabularInline]
     class Meta:
         model = Lista
 
+
+class PromocaoCondicaoTabularInline(admin.TabularInline):
+    model = PromocaoCondicao
+    extra = 0
+
+class PromocaoProdutoTabularInline(admin.TabularInline):
+    model = PromocaoProduto
+    extra = 0
+
+
+class PromocaoAdmin(admin.ModelAdmin):
+
+    inlines = [PromocaoCondicaoTabularInline,PromocaoProdutoTabularInline]
+
+    list_display = ('descricao','tipo_condicao','tipo_desconto')
+
+    search_fields = ('descricao',)
+    ordering = ('descricao',)
+    filter_horizontal = ()
 
 class ClienteAdmin(admin.ModelAdmin):
 
@@ -22,35 +43,27 @@ class ClienteAdmin(admin.ModelAdmin):
     filter_horizontal = ()
 
 
-class PromocaoAdmin(admin.ModelAdmin):
 
-    list_display = ('descricao','tipo_condicao','tipo_desconto')
+class ProdutoBarraTabularInline(admin.TabularInline):
+    model = ProdutoBarra
+    readonly_fields = ('barra',)
+    can_delete = False
+    extra = 0
 
-    search_fields = ('descricao',)
-    ordering = ('descricao',)
-    filter_horizontal = ()
-
-class PromocaoCondicaoAdmin(admin.ModelAdmin):
-
-    list_display = ('promocao','condicao','desconto')
-
-    search_fields = ('promocao',)
-    ordering = ('promocao',)
-    filter_horizontal = ()
-
-class PromocaoProdutoAdmin(admin.ModelAdmin):
-
-    list_display = ('promocao','produto')
-
-    search_fields = ('produto',)
-    ordering = ('promocao__descricao',)
-    filter_horizontal = ()
-
+class ProdutoPrecoTabularInline(admin.TabularInline):
+    model = ProdutoPreco
+    readonly_fields = ('tabela','preco')
+    can_delete = False
+    extra = 0
 
 class ProdutoAdmin(admin.ModelAdmin):
 
+    inlines = [ProdutoPrecoTabularInline,ProdutoBarraTabularInline]
     list_display = ('produto','desconto','colecao','categoria','subcategoria','atualizacao')
-    list_editable = ['desconto',] 
+    list_editable = ['desconto',]
+    readonly_fields=('produto','descricao','sortido','composicao','linha','categoria','subcategoria','qtd_tamanhos',
+    'tamanhos','periodos','precos','qtd_total',
+    'colecao','categoria','subcategoria','atualizacao','url_imagem',)
 
     search_fields = ('produto',)
     ordering = ('produto',)
@@ -64,22 +77,7 @@ class ProdutoPeriodoAdmin(admin.ModelAdmin):
     ordering = ('produto__produto',)
     filter_horizontal = ()
 
-class ProdutoBarraAdmin(admin.ModelAdmin):
 
-    list_display = ('produto','barra')
-
-    search_fields = ('produto__produto',)
-    ordering = ('produto__produto',)
-    filter_horizontal = ()
-
-
-class ProdutoPrecoAdmin(admin.ModelAdmin):
-
-    list_display = ('produto','preco')
-
-    search_fields = ('produto__produto',)
-    ordering = ('produto__produto',)
-    filter_horizontal = ()
 
 class PedidoAdmin(admin.ModelAdmin):
 
@@ -107,26 +105,15 @@ class PedidoItemAdmin(admin.ModelAdmin):
     ordering = ('id',)
     filter_horizontal = ()
 
-# class DescontoProdutoAdmin(admin.ModelAdmin):
-
-#     list_display = ('produto','desconto')
-#     list_editable = ['desconto',] 
-
-#     search_fields = ('produto__produto',)
-#     ordering = ('produto','desconto',)
 
 
 admin.site.register(Pedido,PedidoAdmin)
 admin.site.register(PedidoPeriodo,PedidoPeriodoAdmin)
 admin.site.register(PedidoItem,PedidoItemAdmin)
-admin.site.register(ProdutoPreco,ProdutoPrecoAdmin)
-admin.site.register(ProdutoBarra,ProdutoBarraAdmin)
 admin.site.register(ProdutoPeriodo,ProdutoPeriodoAdmin)
 admin.site.register(Periodo)
 admin.site.register(Produto,ProdutoAdmin)
 admin.site.register(Promocao,PromocaoAdmin)
-admin.site.register(PromocaoCondicao,PromocaoCondicaoAdmin)
-admin.site.register(PromocaoProduto,PromocaoProdutoAdmin)
 admin.site.register(Categorias)
 admin.site.register(Banner)
 admin.site.register(Cliente,ClienteAdmin)

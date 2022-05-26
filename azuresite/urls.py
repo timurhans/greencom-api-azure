@@ -26,11 +26,14 @@ promocoes,promocoes_computa,promocoes_remove,
 # generate_PDF,pedidos,
 produtos,home,clientes,busca,
 categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
-carrinho_delete_item,produtos_update,produtos_cadastra_promo,produtos_lista,pedido_view_get)
+carrinho_delete_item,produtos_update,produtos_cadastra_promo,produtos_lista,pedido_view_get,pedidos_atualiza_entregar,get_pedidos_atualizar_entregar)
 from params.views import (params,filterOptions)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
 
+
+admin.autodiscover()
+admin.site.enable_nav_sidebar = False
 
 urlpatterns = [
     path('home/', home),
@@ -50,6 +53,8 @@ urlpatterns = [
     path('pedidos/processa/<id>/', pedidos_processa),
     path('pedido/<idPedido>/', pedido_view_get),
     path('pedidos_integracao/', pedidos_integracao),
+    path('pedidos_integracao_entregar/', pedidos_atualiza_entregar),
+    path('get_pedidos_integracao_entregar/', get_pedidos_atualizar_entregar),
     path('promocoes/', promocoes),
     path('promocoes/<id_pedido>/', promocoes_computa),
     path('promocoes/remove/<id_pedido>/', promocoes_remove),

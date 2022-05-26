@@ -110,6 +110,8 @@ class Pedido(models.Model):
     is_teste = models.BooleanField(default=False)
     valor_total = models.DecimalField(max_digits=8, decimal_places=2,default=0)
     qtd_total = models.IntegerField(default=0)
+    valor_total_entregar = models.DecimalField(max_digits=8, decimal_places=2,default=0)
+    qtd_total_entregar = models.IntegerField(default=0)
     dados = models.TextField(default='',null=True,blank=True)
     observacoes = models.TextField(default='',null=True,blank=True)
     def __str__(self):
@@ -120,6 +122,8 @@ class PedidoPeriodo(models.Model):
     periodo = models.ForeignKey(Periodo,null=False,blank=False, on_delete=models.CASCADE)
     qtd_periodo = models.IntegerField(default=0)
     valor_periodo = models.DecimalField(max_digits=8, decimal_places=2,default=0)
+    qtd_periodo_entregar = models.IntegerField(default=0)
+    valor_periodo_entregar = models.DecimalField(max_digits=8, decimal_places=2,default=0)
     def __str__(self):
         return str(self.pedido.cliente)+' - '+self.periodo.desc_periodo
 
@@ -131,6 +135,8 @@ class PedidoItem(models.Model):
     preco = models.DecimalField(max_digits=8, decimal_places=2)
     qtd_item = models.IntegerField()
     valor_item = models.DecimalField(max_digits=8, decimal_places=2)
+    qtd_item_entregar = models.IntegerField(default=0)
+    valor_item_entregar = models.DecimalField(max_digits=8, decimal_places=2,default=0)
     periodos_alteracao = models.TextField(default="",blank=True,null=True)
     observacao_item = models.CharField(max_length=150,blank=True,null=True,default="")
     def __str__(self):

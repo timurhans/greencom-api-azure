@@ -24,6 +24,7 @@ import json
 from datetime import (date,datetime)
 import os
 import copy
+import calendar
 
 
 # ----------------------- FUNCOES AUXILIARES --------------------------------
@@ -254,18 +255,23 @@ def pedido_view_get(request,idPedido):
         dados_periodo['periodo'] = per.periodo.desc_periodo
         dados_periodo['qtd_periodo'] = per.qtd_periodo
         dados_periodo['valor_periodo'] = per.valor_periodo
+        dados_periodo['qtd_periodo_entregar'] = per.qtd_periodo_entregar
+        dados_periodo['valor_periodo_entregar'] = per.valor_periodo_entregar
+
         pedido_item = PedidoItem.objects.filter(pedido_periodo=per).order_by('produto__produto')
         dados_periodo['itens'] = list(
             pedido_item.values('id','periodos_alteracao','produto__produto','produto__descricao','produto__sortido','produto__composicao',
             'produto__categoria','produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
-            'produto__tamanhos','produto__colecao','produto__periodos','qtds','preco','desconto','qtd_item','valor_item','observacao_item'))
+            'produto__tamanhos','produto__colecao','produto__periodos','qtds','preco','desconto',
+            'qtd_item','valor_item','qtd_item_entregar','valor_item_entregar','observacao_item'))
         dados_pedido.append(dados_periodo)
     if len(dados_pedido)==0:
         message = "Sem Itens no Pedido"
     
     print(dados_pedido)
     return Response({'dados':dados_pedido,'valor_total':pedido.valor_total,
-    'qtd_total':pedido.qtd_total,'carrinhoId':pedido.id,'is_teste':pedido.is_teste,
+    'qtd_total':pedido.qtd_total,'qtd_total_entregar':pedido.qtd_total_entregar,'valor_total_entregar':pedido.valor_total_entregar,
+    'carrinhoId':pedido.id,'is_teste':pedido.is_teste,
     'razao_social':pedido.cliente.razao_social,
     'observacoes':pedido.observacoes,'message':message,'confirmed':True})
 
@@ -579,6 +585,7 @@ def pedido_to_dict(ped):
     ped['cliente']['comissao'] = str(ped['cliente']['comissao'])
     del ped['cliente']['_state']
     ped['valor_total'] = str(ped['valor_total'])
+    ped['valor_total_entregar'] = str(ped['valor_total'])
     ped['representante'] = Account.objects.get(id=ped['cliente']['representante_id']).__dict__['name']
     ped['representante_email'] = Account.objects.get(id=ped['cliente']['representante_id']).__dict__['email']
     ped['data_criacao'] = ped['data_criacao'].strftime("%Y-%m-%d %H:%M:%S %Z")
@@ -693,7 +700,8 @@ def pedidos_integracao(request):
             pedidos = list(Pedido.objects.filter(liberado_rep=True,enviado_fabrica=False,is_teste=False).values())
             for ped in pedidos:
                 ped = pedido_to_dict(ped)
-            pedidos = json.dumps(pedidos)       
+            print(pedidos)
+            pedidos = json.dumps(pedidos)   
             return Response({'pedidos': pedidos,'confirmed':True})
     else:
         return Response({'message':'Usuario sem Permissao','confirmed':False})
@@ -715,7 +723,7 @@ def pedidos(request):
         
         pedidos = pedidos.values('id','cliente__nome','cliente__desc_cond_pag','cliente__cnpj',
         'cliente__razao_social','cliente__id','qtd_total','colecao',
-                'valor_total','user__name','liberado_cliente','data_criacao','is_teste','ultima_atualiz',
+                'valor_total','valor_total_entregar','user__name','liberado_cliente','data_criacao','is_teste','ultima_atualiz',
                 'data_liberacao','liberado_rep','enviado_fabrica','codigo_erp')
         return Response({'pedidos':list(pedidos),'confirmed':True})
         # return Response({'pedidos':list(pedidos),'confirmed':True})
@@ -748,6 +756,7 @@ def pedidos_save(request,id):
         pedido.is_teste = is_teste
         pedido.observacoes = observacoes
         pedido.save()
+        pedido_atualiza_totais(pedido.id)
         return Response({'message':'Pedido Salvo','confirmed':True})
     else:
         return Response({'message':'Fazer Login','confirmed':False})
@@ -915,18 +924,26 @@ def pedido_atualiza_totais(id_pedido):
     #atualiza periodos
     periodos = PedidoPeriodo.objects.filter(pedido__id=id_pedido)
     for per in periodos:
-        totais = PedidoPeriodo.objects.filter(id=per.id).aggregate(qtd=Sum('pedidoitem__qtd_item'),valor=Sum('pedidoitem__valor_item'))
+        totais = PedidoPeriodo.objects.filter(id=per.id).aggregate(
+            qtd=Sum('pedidoitem__qtd_item'),valor=Sum('pedidoitem__valor_item'),
+            qtd_entregar=Sum('pedidoitem__qtd_item_entregar'),valor_entregar=Sum('pedidoitem__valor_item_entregar'))
         try:
             per.qtd_periodo = totais['qtd']
             per.valor_periodo = totais['valor']
+            per.qtd_periodo_entregar = totais['qtd_entregar']
+            per.valor_periodo_entregar = totais['valor_entregar']
             per.save()
         except:
             per.delete()
     #atualiza totais
     pedido = Pedido.objects.get(id=id_pedido)
-    totais = Pedido.objects.filter(id=id_pedido).aggregate(qtd=Sum('pedidoperiodo__qtd_periodo'),valor=Sum('pedidoperiodo__valor_periodo'))
+    totais = Pedido.objects.filter(id=id_pedido).aggregate(
+        qtd=Sum('pedidoperiodo__qtd_periodo'),valor=Sum('pedidoperiodo__valor_periodo'),
+        qtd_entregar=Sum('pedidoperiodo__qtd_periodo_entregar'),valor_entregar=Sum('pedidoperiodo__valor_periodo_entregar'))
     pedido.qtd_total=totais['qtd']
     pedido.valor_total=totais['valor']
+    pedido.qtd_total_entregar=totais['qtd_entregar']
+    pedido.valor_total_entregar=totais['valor_entregar']
     pedido.save()
     return pedido
 
@@ -1385,3 +1402,92 @@ def barras(request):
 def banners_home(request):
     banners = list(Banner.objects.order_by('ordem').values())
     return Response({'banners': banners,'confirmed':True})
+
+
+
+@api_view(['POST'])
+def pedidos_atualiza_entregar(request):
+
+    erros = {'tem_erro':False,'pedido':"",'periodo':[],'item':[]}
+
+    # View para integracao dos usuarios com perfil de cliente e cadastro de clientes
+    if request.user.is_superuser:
+        pedido_json = json.loads(request.POST['pedido'])
+        
+        # pedido = Pedido.objects.get(codigo_erp=pedido_json['CODIGO_ERP'])
+        try:
+            pedido = Pedido.objects.get(codigo_erp=pedido_json['CODIGO_ERP'])
+            erros['pedido'] = pedido_json['CODIGO_ERP']
+        except:
+            erros['tem_erro'] = True
+            erros['pedido'] = pedido_json['CODIGO_ERP']
+            return Response({'message': 'Pedido nao encontrado','erros':erros,'confirmed':False})
+        periodos = pedido_json['PERIODOS']
+        # periodos = json.loads(periodos)
+        for periodo in periodos:
+
+            # verifica se data e ultimo dia do mes - se nao, periodo igual a imediato
+            is_imediato = False
+            periodo_date = datetime.strptime(periodo,'%Y-%m-%d')
+            ultimo_dia_mes = calendar.monthrange(periodo_date.year, periodo_date.month)
+            ultimo_dia_mes = ultimo_dia_mes[1]
+            if periodo_date.day != ultimo_dia_mes:
+                is_imediato = True
+            
+
+            try:
+                if is_imediato:
+                    periodo_obj = Periodo.objects.get(desc_periodo='Imediato')
+                else:
+                    periodo_obj = Periodo.objects.get(periodo_faturamento=periodo_date)
+
+
+                pedido_periodo = PedidoPeriodo.objects.get(periodo=periodo_obj,pedido=pedido)
+            except:
+                erros['tem_erro'] = True
+                erros['periodo'].append(str(periodo_obj))
+                continue
+            itens = periodos[periodo]
+
+            for item in itens:
+                try:
+                    produto = Produto.objects.get(produto=item['PRODUTO'])
+                    item_obj = PedidoItem.objects.get(pedido_periodo=pedido_periodo,produto=produto)
+                except:
+                    erros['tem_erro'] = True
+                    erros['item'].append(str(item_obj)+" - "+item_obj.produto)
+                    continue
+                item_obj.qtd_item_entregar = item['QTDE_ENTREGAR']
+                item_obj.valor_item_entregar = item['VALOR_ENTREGAR']
+                item_obj.save()
+
+
+        pedido_atualiza_totais(pedido.id)
+        if erros['tem_erro']:
+            return Response({'message': 'Atualizado com Erros','erros':erros,'confirmed':True})
+        else:
+            return Response({'message': 'Atualizado com Sucesso','erros':erros,'confirmed':True})
+
+    return Response({'message': 'Usuario nao e superuser','confirmed':False})
+
+
+
+@api_view(['GET'])
+def get_pedidos_atualizar_entregar(request):
+
+
+    # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
+    if request.user.is_superuser:
+        pedidos_nao_duplicados = Pedido.objects.values('codigo_erp').annotate(Count('id')).order_by().filter(id__count=1)
+
+        pedidos_nao_duplicados = [x['codigo_erp'] for x in pedidos_nao_duplicados]
+
+        pedidos_atualizar = Pedido.objects.filter(codigo_erp__in=pedidos_nao_duplicados,valor_total_entregar__gt=0).values('codigo_erp')
+
+        pedidos_atualizar = [x['codigo_erp'] for x in pedidos_atualizar]
+
+        return Response({'pedidos': pedidos_atualizar,'confirmed':False})
+
+
+
+    return Response({'message': 'Usuario nao e superuser','confirmed':False})
