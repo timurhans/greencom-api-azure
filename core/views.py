@@ -814,6 +814,23 @@ def pedidos_retoma(request,id):
     else:
         return Response({'message':'Fazer Login','confirmed':False})
 
+
+def pedidos_processa_set_qtd_entregar(pedido):
+    periodos = PedidoPeriodo.objects.filter(pedido=pedido)
+
+    for per in periodos:
+        pedido_itens = PedidoItem.objects.filter(pedido_periodo=per)
+
+        for ped_it in pedido_itens:
+            ped_it.valor_item_entregar = ped_it.valor_item
+            ped_it.qtd_item_entregar = ped_it.qtd_item
+            ped_it.save()
+
+    pedido_atualiza_totais(pedido.id)
+
+    
+
+
 @api_view(['GET','POST'])
 def pedidos_processa(request,id):
     # Processa pedido, fazendo verificacoes e separacao
@@ -841,6 +858,7 @@ def pedidos_processa(request,id):
                 ped.observacoes=observacoes
                 # ped.observacoes=""
                 ped.save()
+                pedidos_processa_set_qtd_entregar(ped)
             pedido_envia_email(pedido_copia,lista_pedidos)    
             return Response({'message':'Salvo com Sucesso','confirmed':True})
         else:         

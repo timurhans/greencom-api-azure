@@ -1,4 +1,5 @@
 from django.contrib import admin
+from nested_inline.admin import NestedTabularInline, NestedModelAdmin
 from .models import (Categorias,Cliente,
 Promocao,PromocaoCondicao,PromocaoProduto,Produto,ProdutoPreco,
 ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,Banner,Lista,ListaProduto)
@@ -56,9 +57,17 @@ class ProdutoPrecoTabularInline(admin.TabularInline):
     can_delete = False
     extra = 0
 
+class ProdutoPeriodoTabularInline(admin.TabularInline):
+    model = ProdutoPeriodo
+    readonly_fields = ('produto','periodo','dados','qtd_total')
+    
+    can_delete = False
+    extra = 0
+
+
 class ProdutoAdmin(admin.ModelAdmin):
 
-    inlines = [ProdutoPrecoTabularInline,ProdutoBarraTabularInline]
+    inlines = [ProdutoPrecoTabularInline,ProdutoBarraTabularInline,ProdutoPeriodoTabularInline]
     list_display = ('produto','desconto','colecao','categoria','subcategoria','atualizacao')
     list_editable = ['desconto',]
     readonly_fields=('produto','descricao','sortido','composicao','linha','categoria','subcategoria','qtd_tamanhos',
@@ -69,48 +78,73 @@ class ProdutoAdmin(admin.ModelAdmin):
     ordering = ('produto',)
     filter_horizontal = ()
 
-class ProdutoPeriodoAdmin(admin.ModelAdmin):
+# class ProdutoPeriodoAdmin(admin.ModelAdmin):
 
-    list_display = ('produto','periodo')
+#     list_display = ('produto','periodo')
 
-    search_fields = ('produto__produto',)
-    ordering = ('produto__produto',)
-    filter_horizontal = ()
+#     search_fields = ('produto__produto',)
+#     ordering = ('produto__produto',)
+#     filter_horizontal = ()
 
 
 
-class PedidoAdmin(admin.ModelAdmin):
+
+
+
+class PedidoItemInline(NestedTabularInline):
+    model = PedidoItem
+    extra = 0
+    fk_name = 'pedido_periodo'
+
+    readonly_fields=('produto','pedido_periodo','qtds','desconto','preco','qtd_item','qtd_item_entregar','valor_item','valor_item_entregar','periodos_alteracao','observacao_item')
+
+class PedidoPeriodoInline(NestedTabularInline):
+    model = PedidoPeriodo
+    extra = 0
+    fk_name = 'pedido'
+    inlines = [PedidoItemInline]
+
+    readonly_fields=('periodo','qtd_periodo','qtd_periodo_entregar','valor_periodo','valor_periodo_entregar')
+
+class PedidoAdmin(NestedModelAdmin):
+
+    inlines = [PedidoPeriodoInline]
 
     list_display = (
     'user','cliente','codigo_erp','tipo_venda','liberado_rep','is_teste',
     'colecao','qtd_total','valor_total','data_criacao','ultima_atualiz')
 
+    readonly_fields=('data_criacao','data_liberacao','ultima_atualiz','codigo_erp','valor_total','qtd_total','valor_total_entregar','qtd_total_entregar',
+    'dados')
+
     search_fields = ('cliente__nome','user__name',)
     ordering = ('id',)
     filter_horizontal = ()
 
-class PedidoPeriodoAdmin(admin.ModelAdmin):
 
-    list_display = ('pedido','periodo','qtd_periodo','valor_periodo')
 
-    search_fields = ('pedido__cliente__nome',)
-    ordering = ('id',)
-    filter_horizontal = ()
+# class PedidoPeriodoAdmin(admin.ModelAdmin):
 
-class PedidoItemAdmin(admin.ModelAdmin):
+#     list_display = ('pedido','periodo','qtd_periodo','valor_periodo')
 
-    list_display = ('pedido_periodo','produto','desconto','preco','qtd_item','valor_item')
+#     search_fields = ('pedido__cliente__nome',)
+#     ordering = ('id',)
+#     filter_horizontal = ()
 
-    search_fields = ('produto__produto','pedido_periodo__pedido__cliente__nome')
-    ordering = ('id',)
-    filter_horizontal = ()
+# class PedidoItemAdmin(admin.ModelAdmin):
+
+#     list_display = ('pedido_periodo','produto','desconto','preco','qtd_item','valor_item')
+
+#     search_fields = ('produto__produto','pedido_periodo__pedido__cliente__nome')
+#     ordering = ('id',)
+#     filter_horizontal = ()
 
 
 
 admin.site.register(Pedido,PedidoAdmin)
-admin.site.register(PedidoPeriodo,PedidoPeriodoAdmin)
-admin.site.register(PedidoItem,PedidoItemAdmin)
-admin.site.register(ProdutoPeriodo,ProdutoPeriodoAdmin)
+# admin.site.register(PedidoPeriodo,PedidoPeriodoAdmin)
+# admin.site.register(PedidoItem,PedidoItemAdmin)
+# admin.site.register(ProdutoPeriodo,ProdutoPeriodoAdmin)
 admin.site.register(Periodo)
 admin.site.register(Produto,ProdutoAdmin)
 admin.site.register(Promocao,PromocaoAdmin)
