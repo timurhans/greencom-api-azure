@@ -984,6 +984,12 @@ def promocoes_computa(request,id_pedido):
         elif promocao.tipo_condicao=='VLR':
             valor_atingido=totais_pedido['valor']
 
+
+        #valor_condicao
+        # if tipo_promo = cliente
+        # valor_condicao = get condicao cliente para a promo
+        # else valor condicao = promocao_condicao.condicao
+
         if valor_atingido>=promocao_condicao.condicao:
             if promocao.tipo_desconto=='VLR':
                 for item in itens_pedido:
@@ -1473,7 +1479,7 @@ def pedidos_atualiza_entregar(request):
                     item_obj = PedidoItem.objects.get(pedido_periodo=pedido_periodo,produto=produto)
                 except:
                     erros['tem_erro'] = True
-                    erros['item'].append(str(item_obj)+" - "+item_obj.produto)
+                    erros['item'].append(str(pedido_periodo)+" - "+str(produto))
                     continue
                 item_obj.qtd_item_entregar = item['QTDE_ENTREGAR']
                 item_obj.valor_item_entregar = item['VALOR_ENTREGAR']
@@ -1500,7 +1506,8 @@ def get_pedidos_atualizar_entregar(request):
 
         pedidos_nao_duplicados = [x['codigo_erp'] for x in pedidos_nao_duplicados]
 
-        pedidos_atualizar = Pedido.objects.filter(codigo_erp__in=pedidos_nao_duplicados,valor_total_entregar__gt=0).values('codigo_erp')
+        # pedidos_atualizar = Pedido.objects.filter(codigo_erp__in=pedidos_nao_duplicados,valor_total_entregar__gt=0).values('codigo_erp') EXCLUINDO TBM COM VALOR ENTREGAR = 0
+        pedidos_atualizar = Pedido.objects.filter(codigo_erp__in=pedidos_nao_duplicados).values('codigo_erp')
 
         pedidos_atualizar = [x['codigo_erp'] for x in pedidos_atualizar]
 
