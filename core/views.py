@@ -15,7 +15,7 @@ import decimal
 #APP IMPORTS
 from .models import (Produto,ProdutoPreco,ProdutoPeriodo,ProdutoBarra,
         Categorias,Cliente,Periodo,Promocao,PromocaoCondicao,PromocaoProduto,
-        Pedido,PedidoPeriodo,PedidoItem,Banner,Lista,ListaProduto)
+        Pedido,PedidoPeriodo,PedidoItem,Banner,Lista,ListaProduto,PromocaoClienteCondicao)
 from params.models import (ColecaoErp,ColecaoB2b,Parametro)
 from account.models import (Account,AccountType)
 # THIRD PARTY IMPORTS
@@ -965,6 +965,44 @@ def pedido_atualiza_totais(id_pedido):
     pedido.save()
     return pedido
 
+# @api_view(['GET','POST'])
+# def promocoes_computa(request,id_pedido):
+#     pedido = Pedido.objects.get(id=id_pedido)
+#     id_promocao = request.GET['id_promocao']
+#     id_condicao = request.GET['id_condicao']
+#     if request.user.tipo_conta.is_rep and request.user.login == pedido.cliente.representante.login:
+#         promocao = Promocao.objects.get(id=id_promocao)
+#         promocao_condicao = PromocaoCondicao.objects.get(id=id_condicao)
+#         produtos_promo = list(PromocaoProduto.objects.filter(promocao=promocao).values('produto__produto'))
+#         produtos_promo = [p['produto__produto'] for p in produtos_promo]
+#         itens_pedido = PedidoItem.objects.filter(produto__produto__in=produtos_promo,pedido_periodo__pedido__id=id_pedido)
+#         totais_pedido = itens_pedido.aggregate(qtd=Sum('qtd_item'),valor=Sum('valor_item'))
+
+             
+#         if promocao.tipo_condicao=='QTD':
+#             valor_atingido=totais_pedido['qtd']
+#         elif promocao.tipo_condicao=='VLR':
+#             valor_atingido=totais_pedido['valor']
+
+
+#         if valor_atingido>=promocao_condicao.condicao:
+#             if promocao.tipo_desconto=='VLR':
+#                 for item in itens_pedido:
+#                     item.desconto = promocao_condicao.desconto
+#                     item.valor_item = round(item.preco-item.desconto,2)*item.qtd_item
+#                     item.save()
+#             elif promocao.tipo_desconto=='PCT':
+#                 for item in itens_pedido:
+#                     item.desconto = promocao_condicao.desconto*item.preco
+#                     item.valor_item = round(item.preco-item.desconto,2)*item.qtd_item
+#                     item.save()
+        
+#             pedido_atualiza_totais(id_pedido)
+#         return Response({'message': 'Promocoes Computadas','confirmed':True})
+#     else:
+#         return Response({'message': 'Usuario sem permissao','confirmed':False})
+
+
 @api_view(['GET','POST'])
 def promocoes_computa(request,id_pedido):
     pedido = Pedido.objects.get(id=id_pedido)
@@ -972,33 +1010,36 @@ def promocoes_computa(request,id_pedido):
     id_condicao = request.GET['id_condicao']
     if request.user.tipo_conta.is_rep and request.user.login == pedido.cliente.representante.login:
         promocao = Promocao.objects.get(id=id_promocao)
-        promocao_condicao = PromocaoCondicao.objects.get(id=id_condicao)
+        
         produtos_promo = list(PromocaoProduto.objects.filter(promocao=promocao).values('produto__produto'))
         produtos_promo = [p['produto__produto'] for p in produtos_promo]
         itens_pedido = PedidoItem.objects.filter(produto__produto__in=produtos_promo,pedido_periodo__pedido__id=id_pedido)
         totais_pedido = itens_pedido.aggregate(qtd=Sum('qtd_item'),valor=Sum('valor_item'))
-
              
-        if promocao.tipo_condicao=='QTD':
+        if promocao.tipo_condicao in ['QTD','CLQ']:
             valor_atingido=totais_pedido['qtd']
-        elif promocao.tipo_condicao=='VLR':
+        elif promocao.tipo_condicao==['VLR','CLV']:
             valor_atingido=totais_pedido['valor']
 
+        if promocao.tipo_condicao in ['CLV','CLQ']:
+            promocao_condicao = PromocaoClienteCondicao.objects.get(promocao=promocao,cliente=pedido.cliente)
+            valor_condicao = promocao_condicao.condicao
+            desconto = promocao_condicao.desconto
+        else:
+            promocao_condicao = PromocaoCondicao.objects.get(id=id_condicao)
+            valor_condicao = promocao_condicao.condicao
+            desconto = promocao_condicao.desconto
 
-        #valor_condicao
-        # if tipo_promo = cliente
-        # valor_condicao = get condicao cliente para a promo
-        # else valor condicao = promocao_condicao.condicao
 
-        if valor_atingido>=promocao_condicao.condicao:
+        if valor_atingido>=valor_condicao:
             if promocao.tipo_desconto=='VLR':
                 for item in itens_pedido:
-                    item.desconto = promocao_condicao.desconto
+                    item.desconto = desconto
                     item.valor_item = round(item.preco-item.desconto,2)*item.qtd_item
                     item.save()
             elif promocao.tipo_desconto=='PCT':
                 for item in itens_pedido:
-                    item.desconto = promocao_condicao.desconto*item.preco
+                    item.desconto = desconto*item.preco
                     item.valor_item = round(item.preco-item.desconto,2)*item.qtd_item
                     item.save()
         
@@ -1006,7 +1047,6 @@ def promocoes_computa(request,id_pedido):
         return Response({'message': 'Promocoes Computadas','confirmed':True})
     else:
         return Response({'message': 'Usuario sem permissao','confirmed':False})
-
 
 @api_view(['GET','POST'])
 def promocoes_remove(request,id_pedido):
@@ -1022,8 +1062,28 @@ def promocoes_remove(request,id_pedido):
     else:
         return Response({'message': 'Usuario sem permissao','confirmed':False})
 
+# @api_view(['GET','POST'])
+# def promocoes(request):
+#     # Consulta promocoes disponiveis
+#     if request.user.tipo_conta.is_rep:
+#         promocoes = Promocao.objects.all()
+#         lista_promocoes = []
+#         for prom in promocoes:
+#             dados_promo = {}
+#             dados_promo['descricao'] = prom.descricao
+#             dados_promo['tipo_condicao'] = prom.tipo_condicao
+#             dados_promo['tipo_desconto'] = prom.tipo_desconto
+#             dados_promo['id_promocao'] = prom.id
+#             promo_condicoes = PromocaoCondicao.objects.filter(promocao=prom)
+#             dados_promo['condicoes'] = list(
+#                 promo_condicoes.values('id','condicao','desconto'))
+#             lista_promocoes.append(dados_promo)
+#         return Response({'promocoes':lista_promocoes,'message': 'OK','confirmed':True})
+#     else:
+#         return Response({'message': 'Usuario sem permissao','confirmed':False})
+
 @api_view(['GET','POST'])
-def promocoes(request):
+def promocoes(request,id_cliente=None):
     # Consulta promocoes disponiveis
     if request.user.tipo_conta.is_rep:
         promocoes = Promocao.objects.all()
@@ -1034,13 +1094,23 @@ def promocoes(request):
             dados_promo['tipo_condicao'] = prom.tipo_condicao
             dados_promo['tipo_desconto'] = prom.tipo_desconto
             dados_promo['id_promocao'] = prom.id
-            promo_condicoes = PromocaoCondicao.objects.filter(promocao=prom)
+            if prom.tipo_condicao in ['CLV','CLQ']:
+                if id_cliente is None:
+                    continue
+                promo_condicoes = PromocaoClienteCondicao.objects.filter(promocao=prom,cliente__id=id_cliente)
+            else:
+                promo_condicoes = PromocaoCondicao.objects.filter(promocao=prom)
+            
             dados_promo['condicoes'] = list(
                 promo_condicoes.values('id','condicao','desconto'))
+
+            if len(dados_promo['condicoes'])==0:
+                continue
             lista_promocoes.append(dados_promo)
         return Response({'promocoes':lista_promocoes,'message': 'OK','confirmed':True})
     else:
         return Response({'message': 'Usuario sem permissao','confirmed':False})
+
 
 @api_view(['GET','POST'])
 def categorias_update(request):

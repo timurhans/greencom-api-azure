@@ -1,9 +1,13 @@
 from django.contrib import admin
+from django import forms
 from nested_inline.admin import NestedTabularInline, NestedModelAdmin
 from .models import (Categorias,Cliente,
-Promocao,PromocaoCondicao,PromocaoProduto,Produto,ProdutoPreco,
-ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,Banner,Lista,ListaProduto)
+Promocao,PromocaoCondicao,PromocaoProduto,Produto,ProdutoPreco,PromocaoClienteCondicao,
+ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,ImportacaoPromocao,
+Banner,Lista,ListaProduto)
 # Register your models here.
+
+
 
 class ListaProdutoTabularInline(admin.TabularInline):
     model = ListaProduto
@@ -16,24 +20,38 @@ class ListaAdmin(admin.ModelAdmin):
         model = Lista
 
 
-class PromocaoCondicaoTabularInline(admin.TabularInline):
+class PromocaoClienteCondicaoTabularInline(NestedTabularInline):
+    model = PromocaoClienteCondicao
+    extra = 0
+    fk_name = 'promocao'
+
+class PromocaoCondicaoTabularInline(NestedTabularInline):
     model = PromocaoCondicao
     extra = 0
+    fk_name = 'promocao'
 
-class PromocaoProdutoTabularInline(admin.TabularInline):
+
+
+class PromocaoProdutoTabularInline(NestedTabularInline):
     model = PromocaoProduto
     extra = 0
+    fk_name = 'promocao'
 
 
-class PromocaoAdmin(admin.ModelAdmin):
+class PromocaoAdmin(NestedModelAdmin):
 
-    inlines = [PromocaoCondicaoTabularInline,PromocaoProdutoTabularInline]
+    inlines = [PromocaoProdutoTabularInline,PromocaoCondicaoTabularInline,PromocaoClienteCondicaoTabularInline]
 
     list_display = ('descricao','tipo_condicao','tipo_desconto')
 
     search_fields = ('descricao',)
     ordering = ('descricao',)
     filter_horizontal = ()
+
+
+
+
+
 
 class ClienteAdmin(admin.ModelAdmin):
 
@@ -78,16 +96,6 @@ class ProdutoAdmin(admin.ModelAdmin):
     ordering = ('produto',)
     filter_horizontal = ()
 
-# class ProdutoPeriodoAdmin(admin.ModelAdmin):
-
-#     list_display = ('produto','periodo')
-
-#     search_fields = ('produto__produto',)
-#     ordering = ('produto__produto',)
-#     filter_horizontal = ()
-
-
-
 
 
 
@@ -123,22 +131,6 @@ class PedidoAdmin(NestedModelAdmin):
 
 
 
-# class PedidoPeriodoAdmin(admin.ModelAdmin):
-
-#     list_display = ('pedido','periodo','qtd_periodo','valor_periodo')
-
-#     search_fields = ('pedido__cliente__nome',)
-#     ordering = ('id',)
-#     filter_horizontal = ()
-
-# class PedidoItemAdmin(admin.ModelAdmin):
-
-#     list_display = ('pedido_periodo','produto','desconto','preco','qtd_item','valor_item')
-
-#     search_fields = ('produto__produto','pedido_periodo__pedido__cliente__nome')
-#     ordering = ('id',)
-#     filter_horizontal = ()
-
 
 
 admin.site.register(Pedido,PedidoAdmin)
@@ -148,8 +140,10 @@ admin.site.register(Pedido,PedidoAdmin)
 admin.site.register(Periodo)
 admin.site.register(Produto,ProdutoAdmin)
 admin.site.register(Promocao,PromocaoAdmin)
+
 admin.site.register(Categorias)
 admin.site.register(Banner)
 admin.site.register(Cliente,ClienteAdmin)
 admin.site.register(Lista,ListaAdmin)
+admin.site.register(ImportacaoPromocao)
 # admin.site.register(DescontoProduto,DescontoProdutoAdmin)

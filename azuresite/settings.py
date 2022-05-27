@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'nested_inline',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -138,6 +139,16 @@ USE_L10N = True
 
 USE_TZ = False
 
+#MEDIA FILES
+
+DEFAULT_FILE_STORAGE = 'azuresite.custom_azure.AzureMediaStorage'
+
+MEDIA_LOCATION = "greencom"
+
+AZURE_ACCOUNT_NAME = "ondasstr092020"
+AZURE_CUSTOM_DOMAIN = f'{AZURE_ACCOUNT_NAME}.blob.core.windows.net'
+# STATIC_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{STATIC_LOCATION}/'
+MEDIA_URL = f'https://{AZURE_CUSTOM_DOMAIN}/{MEDIA_LOCATION}/'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/

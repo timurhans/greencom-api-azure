@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from account.models import (Account)
 from django.utils import timezone
+import pandas as pd
 
 
 class Categorias(models.Model):
@@ -148,6 +149,8 @@ class Promocao(models.Model):
     TIPOS_CONDICOES = [
         ('QTD', 'Quantidade'),
         ('VLR', 'Valor'),
+        ('CLQ', 'Cliente Quantidade'),
+        ('CLV', 'Cliente Valor'),
     ]
     tipo_condicao = models.CharField(max_length=3,choices=TIPOS_CONDICOES,null=False, blank=False)
 
@@ -173,6 +176,74 @@ class PromocaoCondicao(models.Model):
     def __str__(self):
         return str(self.promocao)
 
+class PromocaoClienteCondicao(models.Model):
+    promocao = models.ForeignKey(Promocao,null=False,blank=False, on_delete=models.CASCADE,default=1)
+    cliente = models.ForeignKey(Cliente,null=False,blank=False, on_delete=models.CASCADE,default=1)
+    condicao = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False,default=1)
+    desconto = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False,default=1)
+
+    class Meta:
+        unique_together = ('promocao', 'cliente','condicao')
+
+    def __str__(self):
+        return str(self.promocao) +" - "+str(self.cliente)
+
+
+class ImportacaoPromocao(models.Model):
+    promocao = models.ForeignKey(Promocao,null=False,blank=False, on_delete=models.CASCADE,default=1)
+    planilha_clientes = models.FileField(upload_to='promocao/clientes/',null=True,default=None)
+    planilha_produtos = models.FileField(upload_to='promocao/produtos/',null=True,default=None)
+
+    def save(self,*args,**kwargs):
+
+        super(ImportacaoPromocao, self).save(*args, **kwargs)
+
+        atualiza_clientes = True
+
+        try:
+            planilha_clientes = pd.read_excel(self.planilha_clientes,converters={'CNPJ':str})
+        except:
+            atualiza_clientes = False
+            planilha_clientes = {}
+
+        if atualiza_clientes:
+            #exclui todas as condicoes clientes
+            PromocaoClienteCondicao.objects.filter(promocao=self.promocao).delete()
+
+            planilha_clientes = pd.read_excel(self.planilha_clientes,converters={'CNPJ':str})
+
+            for index,row in planilha_clientes.iterrows():
+                try:
+                    cliente = Cliente.objects.get(cnpj=row['CNPJ'])
+                except:
+                    continue
+                promocao_cliente =  PromocaoClienteCondicao(promocao=self.promocao,cliente=cliente,condicao=row['CONDICAO'],desconto=row['CONDICAO'])
+                promocao_cliente.save()
+
+        atualiza_produtos = True
+
+        try:
+            planilha_produtos = pd.read_excel(self.planilha_produtos,converters={'PRODUTO':str})
+        except:
+            atualiza_produtos = False
+            planilha_produtos = {}
+
+        if atualiza_produtos:
+            #exclui todos os produtos da promocao
+            PromocaoProduto.objects.filter(promocao=self.promocao).delete()
+
+            
+            for index,row in planilha_produtos.iterrows():
+                try:
+                    produto = Produto.objects.get(produto=row['PRODUTO'])
+                except:
+                    continue
+                promocao_produto =  PromocaoProduto(promocao=self.promocao,produto=produto)
+                promocao_produto.save()
+
+
+    def __str__(self):
+        return str(self.promocao)
 
 class Banner(models.Model):
     ordem = models.IntegerField()
@@ -194,9 +265,3 @@ class ListaProduto(models.Model):
     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
     def __str__(self):
         return str(self.lista.codigo+" - "+self.produto.produto)
-
-# class DescontoProduto(models.Model):
-#     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
-#     desconto = models.DecimalField(max_digits=8, decimal_places=2,null=False,blank=False)
-#     def __str__(self):
-#         return self.produto.produto+" - "+str(self.desconto)
