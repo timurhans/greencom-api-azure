@@ -56,6 +56,7 @@ urlpatterns = [
     path('pedidos_integracao_entregar/', pedidos_atualiza_entregar),
     path('get_pedidos_integracao_entregar/', get_pedidos_atualizar_entregar),
     path('promocoes', promocoes),
+    path('promocoes/', promocoes),
     path('promocoes/<id_cliente>', promocoes),
     path('promocoes/<id_pedido>/', promocoes_computa),
     path('promocoes/remove/<id_pedido>/', promocoes_remove),

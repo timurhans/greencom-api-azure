@@ -217,7 +217,7 @@ class ImportacaoPromocao(models.Model):
                     cliente = Cliente.objects.get(cnpj=row['CNPJ'])
                 except:
                     continue
-                promocao_cliente =  PromocaoClienteCondicao(promocao=self.promocao,cliente=cliente,condicao=row['CONDICAO'],desconto=row['CONDICAO'])
+                promocao_cliente =  PromocaoClienteCondicao(promocao=self.promocao,cliente=cliente,condicao=row['CONDICAO'],desconto=row['DESCONTO'])
                 promocao_cliente.save()
 
         atualiza_produtos = True
@@ -265,3 +265,31 @@ class ListaProduto(models.Model):
     produto = models.ForeignKey(Produto,null=False,blank=False, on_delete=models.CASCADE)
     def __str__(self):
         return str(self.lista.codigo+" - "+self.produto.produto)
+
+
+
+
+# MARKETING
+
+# class Pedido(models.Model):
+#     cliente = models.ForeignKey(Cliente,null=False,blank=False, on_delete=models.CASCADE)
+#     solicitante = models.ForeignKey(Account,null=False,blank=False, on_delete=models.CASCADE)
+#     data_criacao = models.DateTimeField(auto_now_add= True)
+#     data_liberacao = models.DateTimeField(default=None,null=True)
+#     ultima_atualiz = models.DateTimeField(auto_now= True)
+#     tipo_venda = models.CharField(default='...',max_length=30,null=False, blank=False)
+#     colecao = models.CharField(default='...',max_length=10, null=False, blank=False)
+#     codigo_erp = models.CharField(default='...',max_length=10, null=False, blank=False)
+#     liberado_cliente = models.BooleanField(default=False)
+#     liberado_rep = models.BooleanField(default=False)
+#     enviado_fabrica = models.BooleanField(default=False)
+#     recebido_fabrica = models.BooleanField(default=False)
+#     is_teste = models.BooleanField(default=False)
+#     valor_total = models.DecimalField(max_digits=8, decimal_places=2,default=0)
+#     qtd_total = models.IntegerField(default=0)
+#     valor_total_entregar = models.DecimalField(max_digits=8, decimal_places=2,default=0)
+#     qtd_total_entregar = models.IntegerField(default=0)
+#     dados = models.TextField(default='',null=True,blank=True)
+#     observacoes = models.TextField(default='',null=True,blank=True)
+#     def __str__(self):
+#         return str(str(self.id)+' - '+str(self.user))
