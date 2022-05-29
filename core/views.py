@@ -1015,14 +1015,18 @@ def promocoes_computa(request,id_pedido):
         produtos_promo = [p['produto__produto'] for p in produtos_promo]
         itens_pedido = PedidoItem.objects.filter(produto__produto__in=produtos_promo,pedido_periodo__pedido__id=id_pedido)
         totais_pedido = itens_pedido.aggregate(qtd=Sum('qtd_item'),valor=Sum('valor_item'))
-             
+
+
         if promocao.tipo_condicao in ['QTD','CLQ']:
             valor_atingido=totais_pedido['qtd']
         elif promocao.tipo_condicao==['VLR','CLV']:
             valor_atingido=totais_pedido['valor']
 
+        if valor_atingido is None:
+            valor_atingido=0
+
         if promocao.tipo_condicao in ['CLV','CLQ']:
-            promocao_condicao = PromocaoClienteCondicao.objects.get(promocao=promocao,cliente=pedido.cliente)
+            promocao_condicao = PromocaoClienteCondicao.objects.get(id=id_condicao)
             valor_condicao = promocao_condicao.condicao
             desconto = promocao_condicao.desconto
         else:
@@ -1044,7 +1048,9 @@ def promocoes_computa(request,id_pedido):
                     item.save()
         
             pedido_atualiza_totais(id_pedido)
-        return Response({'message': 'Promocoes Computadas','confirmed':True})
+            return Response({'message': 'Promoção computada com sucesso','confirmed':True})
+        else:
+            return Response({'message': 'Condição nao atingida para promoção','confirmed':False})
     else:
         return Response({'message': 'Usuario sem permissao','confirmed':False})
 
@@ -1094,15 +1100,40 @@ def promocoes(request,id_cliente=None):
             dados_promo['tipo_condicao'] = prom.tipo_condicao
             dados_promo['tipo_desconto'] = prom.tipo_desconto
             dados_promo['id_promocao'] = prom.id
+
+            
             if prom.tipo_condicao in ['CLV','CLQ']:
                 if id_cliente is None:
                     continue
-                promo_condicoes = PromocaoClienteCondicao.objects.filter(promocao=prom,cliente__id=id_cliente)
+                promo_condicoes = PromocaoClienteCondicao.objects.filter(promocao=prom,cliente__id=id_cliente).order_by('desconto')
             else:
-                promo_condicoes = PromocaoCondicao.objects.filter(promocao=prom)
-            
-            dados_promo['condicoes'] = list(
+                promo_condicoes = PromocaoCondicao.objects.filter(promocao=prom).order_by('desconto')
+
+            promo_condicoes = list(
                 promo_condicoes.values('id','condicao','desconto'))
+
+
+            #Cria descricao das condicao promo
+            if prom.tipo_condicao in ['CLV','VLR']:
+                promo_desc_condicao = 'Vlr Minimo'
+            elif prom.tipo_condicao in ['CLQ','QTD']:
+                promo_desc_condicao = 'Qtd Minima'
+
+            for promo_con in promo_condicoes: 
+
+                if prom.tipo_desconto == 'PCT':
+                    promo_desc_desconto = '% Desconto'
+                    desc_desconto = str(int(promo_con['desconto']*100))+"%"
+                elif prom.tipo_desconto == 'VLR':
+                    promo_desc_desconto = 'Vlr Desconto'
+                    desc_desconto = promo_con['desconto']
+                  
+                promo_con['desc_condicao'] = "{promo_desc_condicao}:{condicao} | {promo_desc_desconto}:{desconto}".format(
+                    promo_desc_condicao=promo_desc_condicao,condicao=str(int(promo_con['condicao'])),promo_desc_desconto=promo_desc_desconto,desconto=desc_desconto
+                )
+
+
+            dados_promo['condicoes'] = promo_condicoes
 
             if len(dados_promo['condicoes'])==0:
                 continue
