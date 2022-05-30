@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db import models
 from django.contrib.auth.models import User
 from account.models import (Account)
@@ -271,25 +272,58 @@ class ListaProduto(models.Model):
 
 # MARKETING
 
-# class Pedido(models.Model):
-#     cliente = models.ForeignKey(Cliente,null=False,blank=False, on_delete=models.CASCADE)
-#     solicitante = models.ForeignKey(Account,null=False,blank=False, on_delete=models.CASCADE)
-#     data_criacao = models.DateTimeField(auto_now_add= True)
-#     data_liberacao = models.DateTimeField(default=None,null=True)
-#     ultima_atualiz = models.DateTimeField(auto_now= True)
-#     tipo_venda = models.CharField(default='...',max_length=30,null=False, blank=False)
-#     colecao = models.CharField(default='...',max_length=10, null=False, blank=False)
-#     codigo_erp = models.CharField(default='...',max_length=10, null=False, blank=False)
-#     liberado_cliente = models.BooleanField(default=False)
-#     liberado_rep = models.BooleanField(default=False)
-#     enviado_fabrica = models.BooleanField(default=False)
-#     recebido_fabrica = models.BooleanField(default=False)
-#     is_teste = models.BooleanField(default=False)
-#     valor_total = models.DecimalField(max_digits=8, decimal_places=2,default=0)
-#     qtd_total = models.IntegerField(default=0)
-#     valor_total_entregar = models.DecimalField(max_digits=8, decimal_places=2,default=0)
-#     qtd_total_entregar = models.IntegerField(default=0)
-#     dados = models.TextField(default='',null=True,blank=True)
-#     observacoes = models.TextField(default='',null=True,blank=True)
+class MaterialTrade(models.Model):
+    descricao = models.CharField(max_length=256,null=False, blank=False,unique=True)
+    descricao_longa = models.TextField(default='',null=True,blank=True)
+    imagem_material = models.ImageField(upload_to='trade/material_trade/',null=True,default=None)
+    ativo = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.descricao)
+
+class MaterialTradeOpcao(models.Model):
+    material_trade = models.ForeignKey(MaterialTrade,null=False,blank=False, on_delete=models.CASCADE)
+    descricao_opcao = models.CharField(max_length=256,null=False, blank=False,unique=True)
+    # descricao_longa_opcao = models.TextField(default='',null=True,blank=True)
+    ativo = models.BooleanField(default=True)
+    prazo_envio = models.IntegerField(default=0, null=False, blank=False)
+    imagem_material_opcao = models.ImageField(upload_to='trade/material_trade_opcao/',null=True,default=None)
+
+    def __str__(self):
+        return str(self.material_trade)+" - "+str(self.descricao_opcao)
+
+# class ImagemMaterialTradeOpcao(models.Model):
+#     material_trade_opcao = models.ForeignKey(MaterialTradeOpcao,null=False,blank=False, on_delete=models.CASCADE)
+#     imagem_material_opcao = models.ImageField(upload_to='trade/material_trade_opcao/',null=True,default=None)
+
 #     def __str__(self):
-#         return str(str(self.id)+' - '+str(self.user))
+#         return str(self.material_trade_opcao)+" - "+str(self.imagem_material_opcao)
+
+class SolicitacaoTrade(models.Model):
+    cliente = models.ForeignKey(Cliente,null=False,blank=False, on_delete=models.CASCADE)
+    solicitante = models.ForeignKey(Account,null=False,blank=False, on_delete=models.CASCADE)
+    material_trade_opcao = models.ForeignKey(MaterialTradeOpcao,null=False,blank=False, on_delete=models.PROTECT)
+    data_solicitacao = models.DateTimeField(auto_now_add= True)
+    data_liberacao = models.DateTimeField(default=None,null=True)
+    previsao_envio = models.DateTimeField(default=None,null=True)
+    aprovado = models.BooleanField(default=False)
+    enviado = models.BooleanField(default=False)
+    recebido = models.BooleanField(default=False)
+    observacoes = models.TextField(default='',null=True,blank=True)
+
+    def save(self,*args,**kwargs):
+
+        if self.aprovado:
+            self.data_liberacao = datetime.now()
+        else:
+            self.data_liberacao = None
+
+        super(SolicitacaoTrade, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return str(self.cliente)+' - '+str(self.material_trade_opcao)+' - '+str(self.data_solicitacao)
+
+
+class ImagemSolicitacaoTrade(models.Model):
+    solicitacao = models.ForeignKey(SolicitacaoTrade,null=False,blank=False, on_delete=models.CASCADE)
+    imagem_solicitacao_trade = models.ImageField(upload_to='trade/solicitacao/',null=True,default=None)

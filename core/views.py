@@ -15,13 +15,14 @@ import decimal
 #APP IMPORTS
 from .models import (Produto,ProdutoPreco,ProdutoPeriodo,ProdutoBarra,
         Categorias,Cliente,Periodo,Promocao,PromocaoCondicao,PromocaoProduto,
-        Pedido,PedidoPeriodo,PedidoItem,Banner,Lista,ListaProduto,PromocaoClienteCondicao)
+        Pedido,PedidoPeriodo,PedidoItem,Banner,Lista,ListaProduto,PromocaoClienteCondicao,
+        MaterialTrade,MaterialTradeOpcao,ImagemSolicitacaoTrade,SolicitacaoTrade)
 from params.models import (ColecaoErp,ColecaoB2b,Parametro)
 from account.models import (Account,AccountType)
 # THIRD PARTY IMPORTS
 from xhtml2pdf import pisa
 import json
-from datetime import (date,datetime)
+from datetime import (date,datetime,timedelta)
 import os
 import copy
 import calendar
@@ -1617,3 +1618,56 @@ def get_pedidos_atualizar_entregar(request):
 
 
     return Response({'message': 'Usuario nao e superuser','confirmed':False})
+
+
+#-------------- TRADE--------------
+
+
+@api_view(['GET'])
+def get_materiais_trade(request):
+
+
+
+    # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
+    if request.user.tipo_conta.is_rep:
+
+        clientes = Cliente.objects.filter(representante__login=request.user.login,inativo=False).order_by('nome').values('nome','razao_social','id')
+
+
+        list_materiais = []
+        materiais = list(MaterialTrade.objects.filter(ativo=True).order_by('descricao').values())
+        print(materiais)
+
+        for mat in materiais:
+            material_opcoes = list(MaterialTradeOpcao.objects.filter(material_trade__id=mat['id'],ativo=True).values())      
+            # for mat_opcao in material_opcoes:
+            #     mat_opcao['imagens'] = list(ImagemMaterialTradeOpcao.objects.filter(material_trade_opcao__id=mat_opcao['id']).values())
+            mat['opcoes'] = material_opcoes
+        
+        return Response({'materiais': materiais,'clientes':clientes,'confirmed':True})
+
+
+@api_view(['GET'])
+def save_solicitacao_trade(request):
+
+
+
+    # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
+    if request.user.tipo_conta.is_rep:
+
+        cliente_id = request.GET['clienteId']
+        cliente_id = request.GET['clienteId']
+
+        cliente = Cliente.objects.get(id=request.GET['clienteId'])
+        material_opcao = MaterialTradeOpcao.objects.get(id=request.GET['materialOpcaoId'])
+        observacoes = request.GET['observacoes']
+        previsao_envio = datetime.now() + timedelta(days=material_opcao.prazo_envio)
+
+        solicitacao = SolicitacaoTrade(
+            solicitante=request.user,cliente=cliente,material_trade_opcao=material_opcao,
+            previsao_envio=previsao_envio,observacoes=observacoes)
+
+        solicitacao.save()
+        
+        return Response({'confirmed':True})
+

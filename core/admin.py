@@ -4,10 +4,10 @@ from nested_inline.admin import NestedTabularInline, NestedModelAdmin
 from .models import (Categorias,Cliente,
 Promocao,PromocaoCondicao,PromocaoProduto,Produto,ProdutoPreco,PromocaoClienteCondicao,
 ProdutoBarra,ProdutoPeriodo,Periodo,Pedido,PedidoItem,PedidoPeriodo,ImportacaoPromocao,
-Banner,Lista,ListaProduto)
+Banner,Lista,ListaProduto,MaterialTrade,MaterialTradeOpcao,ImagemSolicitacaoTrade,SolicitacaoTrade)
 # Register your models here.
 
-
+# -------------LISTAS-----------
 
 class ListaProdutoTabularInline(admin.TabularInline):
     model = ListaProduto
@@ -19,6 +19,8 @@ class ListaAdmin(admin.ModelAdmin):
     class Meta:
         model = Lista
 
+
+# -------------PROMOCAO-----------
 
 class PromocaoClienteCondicaoTabularInline(NestedTabularInline):
     model = PromocaoClienteCondicao
@@ -50,7 +52,7 @@ class PromocaoAdmin(NestedModelAdmin):
 
 
 
-
+# -------------CLIENTES-----------
 
 
 class ClienteAdmin(admin.ModelAdmin):
@@ -61,7 +63,7 @@ class ClienteAdmin(admin.ModelAdmin):
     ordering = ('nome',)
     filter_horizontal = ()
 
-
+# -------------PRODUTOS-----------
 
 class ProdutoBarraTabularInline(admin.TabularInline):
     model = ProdutoBarra
@@ -97,7 +99,7 @@ class ProdutoAdmin(admin.ModelAdmin):
     filter_horizontal = ()
 
 
-
+# -------------PEDIDOS-----------
 
 class PedidoItemInline(NestedTabularInline):
     model = PedidoItem
@@ -130,8 +132,51 @@ class PedidoAdmin(NestedModelAdmin):
     filter_horizontal = ()
 
 
+# -------------TRADE-----------
+
+# class ImagemMaterialTradeOpcaoTabularInline(NestedTabularInline):
+#     model = ImagemMaterialTradeOpcao
+#     extra = 0
+#     fk_name = 'material_trade_opcao'
+
+class MaterialTradeOpcaoTabularInline(NestedTabularInline):
+    
+    model = MaterialTradeOpcao
+    extra = 0
+    fk_name = 'material_trade'
+    # inlines = [ImagemMaterialTradeOpcaoTabularInline]
 
 
+class MaterialTradeAdmin(NestedModelAdmin):
+
+    inlines = [MaterialTradeOpcaoTabularInline]
+
+    list_display = (
+    'descricao','ativo')
+
+    ordering = ('id',)
+    filter_horizontal = ()
+
+    class Meta:
+        model = MaterialTrade
+
+class ImagemSolicitacaoTradeTabularInline(NestedTabularInline):
+    model = ImagemSolicitacaoTrade
+    extra = 0
+    fk_name = 'solicitacao'
+
+class SolicitacaoTradeAdmin(NestedModelAdmin):
+
+    inlines = [ImagemSolicitacaoTradeTabularInline]
+
+    list_display = (
+    'cliente','solicitante','material_trade_opcao','aprovado','data_liberacao','previsao_envio','enviado','recebido')
+
+    readonly_fields=('data_liberacao',)
+
+    # search_fields = ('cliente__nome','user__name',)
+    ordering = ('id',)
+    filter_horizontal = ()
 
 admin.site.register(Pedido,PedidoAdmin)
 # admin.site.register(PedidoPeriodo,PedidoPeriodoAdmin)
@@ -147,3 +192,7 @@ admin.site.register(Cliente,ClienteAdmin)
 admin.site.register(Lista,ListaAdmin)
 admin.site.register(ImportacaoPromocao)
 # admin.site.register(DescontoProduto,DescontoProdutoAdmin)
+
+admin.site.register(MaterialTrade,MaterialTradeAdmin)
+admin.site.register(SolicitacaoTrade,SolicitacaoTradeAdmin)
+# admin.site.register(ImagemMaterialTradeOpcaoTabularInline)
