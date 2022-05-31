@@ -1655,9 +1655,6 @@ def save_solicitacao_trade(request):
     # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
     if request.user.tipo_conta.is_rep:
 
-        cliente_id = request.GET['clienteId']
-        cliente_id = request.GET['clienteId']
-
         cliente = Cliente.objects.get(id=request.GET['clienteId'])
         material_opcao = MaterialTradeOpcao.objects.get(id=request.GET['materialOpcaoId'])
         observacoes = request.GET['observacoes']
@@ -1670,4 +1667,40 @@ def save_solicitacao_trade(request):
         solicitacao.save()
         
         return Response({'confirmed':True})
+    else:
+        return Response({'confirmed':False})
 
+
+@api_view(['GET'])
+def get_solicitacoes_trade(request):
+
+
+
+    # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
+    # if request.user.tipo_conta.is_rep:
+        
+        # clientes = Cliente.objects.filter(representante__login=request.user.login,inativo=False)
+        clientes = Cliente.objects.filter(representante__login='02851704000101',inativo=False)
+
+        solicitacoes = SolicitacaoTrade.objects.filter(cliente__in=clientes).order_by('-data_solicitacao').values('id',
+            'cliente__nome','cliente__razao_social','data_solicitacao','previsao_envio','status',
+            'observacoes','material_trade_opcao__descricao_opcao',
+            'material_trade_opcao__material_trade__descricao','material_trade_opcao__imagem_material_opcao')
+
+
+        for solicitacao in solicitacoes:
+            solicitacao['material'] = solicitacao['material_trade_opcao__material_trade__descricao']
+            del solicitacao['material_trade_opcao__material_trade__descricao']
+            solicitacao['material_opcao'] = solicitacao['material_trade_opcao__descricao_opcao']
+            del solicitacao['material_trade_opcao__descricao_opcao']
+            solicitacao['material_opcao_imagem'] = solicitacao['material_trade_opcao__imagem_material_opcao']
+            del solicitacao['material_trade_opcao__imagem_material_opcao']     
+
+            imagens_solicitacao = list(ImagemSolicitacaoTrade.objects.filter(solicitacao__id=solicitacao['id']).values())
+
+            solicitacao['imagens'] = imagens_solicitacao
+
+
+        solicitacoes = list(solicitacoes)
+        
+        return Response({'solicitacoes':solicitacoes,'confirmed':True})

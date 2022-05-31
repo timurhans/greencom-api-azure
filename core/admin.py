@@ -170,7 +170,7 @@ class SolicitacaoTradeAdmin(NestedModelAdmin):
     inlines = [ImagemSolicitacaoTradeTabularInline]
 
     list_display = (
-    'cliente','solicitante','material_trade_opcao','aprovado','data_liberacao','previsao_envio','enviado','recebido')
+    'cliente','solicitante','material_trade_opcao','data_liberacao','previsao_envio','status')
 
     readonly_fields=('data_liberacao',)
 

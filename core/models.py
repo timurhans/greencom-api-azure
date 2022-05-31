@@ -306,14 +306,20 @@ class SolicitacaoTrade(models.Model):
     data_solicitacao = models.DateTimeField(auto_now_add= True)
     data_liberacao = models.DateTimeField(default=None,null=True)
     previsao_envio = models.DateTimeField(default=None,null=True)
-    aprovado = models.BooleanField(default=False)
-    enviado = models.BooleanField(default=False)
-    recebido = models.BooleanField(default=False)
     observacoes = models.TextField(default='',null=True,blank=True)
+
+
+    TIPOS_CONDICOES = [
+        ("Em estudo", "Em estudo"),
+        ("Aprovado", 'Aprovado'),
+        ("Enviado", 'Enviado'),
+        ('Recebido', 'Recebido'),
+    ]
+    status = models.CharField(max_length=15,choices=TIPOS_CONDICOES,null=False, blank=False,default="Em estudo")
 
     def save(self,*args,**kwargs):
 
-        if self.aprovado:
+        if self.status in ["Aprovado","Enviado","Recebido"]:
             self.data_liberacao = datetime.now()
         else:
             self.data_liberacao = None
