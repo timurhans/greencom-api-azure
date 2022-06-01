@@ -1684,7 +1684,7 @@ def get_solicitacoes_trade(request):
 
         solicitacoes = SolicitacaoTrade.objects.filter(cliente__in=clientes).order_by('-data_solicitacao').values('id',
             'cliente__nome','cliente__razao_social','data_solicitacao','previsao_envio','status',
-            'observacoes','material_trade_opcao__descricao_opcao',
+            'observacoes','material_trade_opcao__descricao_opcao','material_trade_opcao__material_trade__descricao_longa',
             'material_trade_opcao__material_trade__descricao','material_trade_opcao__imagem_material_opcao')
 
 
@@ -1694,7 +1694,9 @@ def get_solicitacoes_trade(request):
             solicitacao['material_opcao'] = solicitacao['material_trade_opcao__descricao_opcao']
             del solicitacao['material_trade_opcao__descricao_opcao']
             solicitacao['material_opcao_imagem'] = solicitacao['material_trade_opcao__imagem_material_opcao']
-            del solicitacao['material_trade_opcao__imagem_material_opcao']     
+            del solicitacao['material_trade_opcao__imagem_material_opcao'] 
+            solicitacao['material_descricao_longa'] = solicitacao['material_trade_opcao__material_trade__descricao_longa']
+            del solicitacao['material_trade_opcao__material_trade__descricao_longa']     
 
             imagens_solicitacao = list(ImagemSolicitacaoTrade.objects.filter(solicitacao__id=solicitacao['id']).values())
 

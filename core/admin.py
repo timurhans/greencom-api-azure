@@ -22,25 +22,27 @@ class ListaAdmin(admin.ModelAdmin):
 
 # -------------PROMOCAO-----------
 
-class PromocaoClienteCondicaoTabularInline(NestedTabularInline):
+class PromocaoClienteCondicaoTabularInline(admin.TabularInline):
     model = PromocaoClienteCondicao
     extra = 0
     fk_name = 'promocao'
+    readonly_fields = ('cliente',)
 
-class PromocaoCondicaoTabularInline(NestedTabularInline):
+class PromocaoCondicaoTabularInline(admin.TabularInline):
     model = PromocaoCondicao
     extra = 0
     fk_name = 'promocao'
 
 
 
-class PromocaoProdutoTabularInline(NestedTabularInline):
+class PromocaoProdutoTabularInline(admin.TabularInline):
     model = PromocaoProduto
     extra = 0
     fk_name = 'promocao'
+    readonly_fields = ('produto',)
 
 
-class PromocaoAdmin(NestedModelAdmin):
+class PromocaoAdmin(admin.ModelAdmin):
 
     inlines = [PromocaoProdutoTabularInline,PromocaoCondicaoTabularInline,PromocaoClienteCondicaoTabularInline]
 
