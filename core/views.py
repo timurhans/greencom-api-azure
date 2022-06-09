@@ -1113,6 +1113,26 @@ def promocoes(request,id_cliente=None):
             promo_condicoes = list(
                 promo_condicoes.values('id','condicao','desconto'))
 
+            if 'carrinhoId' in request.GET:
+                carrinho_id = request.GET['carrinhoId']
+                produtos = list(PromocaoProduto.objects.filter(promocao=prom).values('produto__produto'))
+                produtos = [x['produto__produto'] for x in produtos]
+                print(produtos)
+                carrinho_itens = list(PedidoItem.objects.filter(pedido_periodo__pedido__id=carrinho_id,produto__produto__in=produtos).values())
+
+                if prom.tipo_condicao in ['QTD','CLQ']:
+                    atingido = sum([x['qtd_item'] for x in carrinho_itens])
+                else:
+                    atingido = sum([x['valor_item'] for x in carrinho_itens])
+
+            else:
+                atingido = 0
+
+            dados_promo['atingido'] = atingido
+            
+
+            
+
 
             #Cria descricao das condicao promo
             if prom.tipo_condicao in ['CLV','VLR']:
@@ -1512,7 +1532,7 @@ def barras(request):
             
             for bar in barras:
                 try:
-                    produto_barra = ProdutoBarra.objects.get(produto=produto,barra=bar)
+                    produto_barra = ProdutoBarra.objects.get(barra=bar)
                 except:
                     produto_barra = ProdutoBarra(produto=produto,barra=bar)
                     produto_barra.save()
@@ -1677,10 +1697,10 @@ def get_solicitacoes_trade(request):
 
 
     # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
-    # if request.user.tipo_conta.is_rep:
+    if request.user.tipo_conta.is_rep:
         
-        # clientes = Cliente.objects.filter(representante__login=request.user.login,inativo=False)
-        clientes = Cliente.objects.filter(representante__login='02851704000101',inativo=False)
+        clientes = Cliente.objects.filter(representante__login=request.user.login,inativo=False)
+        # clientes = Cliente.objects.filter(representante__login='02851704000101',inativo=False)
 
         solicitacoes = SolicitacaoTrade.objects.filter(cliente__in=clientes).order_by('-data_solicitacao').values('id',
             'cliente__nome','cliente__razao_social','data_solicitacao','previsao_envio','status',
