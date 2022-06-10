@@ -1260,8 +1260,11 @@ def clientes_users_update(request):
                     cliente.uf=c['UF']
                     cliente.cidade=c['CIDADE']
                     cliente.cep=c['CEP']
-                    cliente.endereco=c['ENDERECO']                   
+                    cliente.endereco=c['ENDERECO']
+                    cliente.inativo=c['INATIVO']
                 except Cliente.DoesNotExist:
+                    if c['INATIVO']:
+                        continue
                     cliente = Cliente(cnpj=c['CNPJ'],nome=c['CLIENTE_ATACADO'],razao_social=c['RAZAO_SOCIAL'],comissao=c['COMISSAO'],
                     condicao_pagamento = c['CONDICAO_PGTO'],desc_cond_pag = c['DESC_COND_PGTO'],valor_aberto=c['VALOR_ABERTO'],
                     tabela_precos=c['CODIGO_TAB_PRECO'],representante=representante,
