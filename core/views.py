@@ -104,6 +104,22 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
     'produto__tamanhos','produto__colecao','produto__periodos'))
 
+    #adiciona dados do periodo no item caso o mesmo esteja no filtro
+    if 'periodo' in request.GET:
+        periodo = request.GET['periodo']
+        if periodo is not None:
+            if periodo != "Todos":
+                periodo = Periodo.objects.get(desc_periodo=periodo)
+                for item_qs in queryset:
+                    dados_periodo = list(ProdutoPeriodo.objects.filter(produto__produto=item_qs['produto__produto'],periodo__desc_periodo=periodo,qtd_total__gt=0).values())
+                    if len(dados_periodo)>0:
+                        dados_periodo = dados_periodo[0]
+                        dados_periodo = json.loads(dados_periodo['dados'])   
+                    else:
+                        dados_periodo = []
+
+                    item_qs['dados_periodo'] = dados_periodo
+
 
     
     return queryset
@@ -1170,11 +1186,22 @@ def categorias_update(request):
     if request.user.is_superuser:
         if request.method == 'POST':
             cats = request.POST['cats']
+            cats_mobile = request.POST['cats_mobile']
             data_hora = timezone.now()
-            dados_query, created = Categorias.objects.get_or_create(id=1)
+
+            #salva cats desktop
+            dados_query = Categorias.objects.get(id=2)
             dados_query.dados = cats
             dados_query.atualizacao=data_hora
             dados_query.save()
+
+
+            #salva cats ,mobile
+            dados_query2 = Categorias.objects.get(id=2)
+            dados_query2.dados = cats_mobile
+            dados_query2.atualizacao=data_hora
+            dados_query2.save()
+                
             return Response({'message': 'Atualizado com Sucesso','confirmed':True})
     return Response({'message': 'Nao e superuser','confirmed':False})
 
@@ -1300,11 +1327,14 @@ def login_api(request):
         cats = Categorias.objects.get(id=1)
         cats = json.loads(cats.dados)
 
+        cats_mobile = Categorias.objects.get(id=2)
+        cats_mobile = json.loads(cats_mobile.dados)
+
         clienteId,clienteNome,isRep,tipo_conta = verifica_session(request)
 
         return Response({'sessionid': request.session.session_key,
         'clienteId':clienteId,'clienteNome':clienteNome,'isRep':isRep,'tipo_conta':tipo_conta,
-        'username':request.user.name,'colecoes':colecoes,'periodos':periodos,'cats':cats,
+        'username':request.user.name,'colecoes':colecoes,'periodos':periodos,'cats':cats,'cats_mobile':cats_mobile,
         'message':'Login realizado com sucesso','confirmed':True})
     else:
         return Response({'message':'Fazer Login','confirmed':False})

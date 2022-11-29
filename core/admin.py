@@ -126,7 +126,7 @@ class PedidoAdmin(NestedModelAdmin):
     'user','cliente','codigo_erp','tipo_venda','liberado_rep','is_teste',
     'colecao','qtd_total','valor_total','data_criacao','ultima_atualiz')
 
-    readonly_fields=('data_criacao','data_liberacao','ultima_atualiz','codigo_erp','valor_total','qtd_total','valor_total_entregar','qtd_total_entregar',
+    readonly_fields=('data_criacao','ultima_atualiz','codigo_erp','valor_total','qtd_total','valor_total_entregar','qtd_total_entregar',
     'dados')
 
     search_fields = ('cliente__nome','user__name',)

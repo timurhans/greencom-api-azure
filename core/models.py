@@ -23,7 +23,7 @@ class Cliente(models.Model):
     comissao = models.DecimalField(max_digits=8, decimal_places=2)
     tabela_precos = models.CharField(max_length=4)
     condicao_pagamento = models.CharField(max_length=4)
-    desc_cond_pag = models.CharField(max_length=30,default="",null=True,blank=True)
+    desc_cond_pag = models.CharField(max_length=100,default="",null=True,blank=True)
     representante = models.ForeignKey(Account,null=True,blank=True, on_delete=models.CASCADE)
     email = models.EmailField(default="",null=True)
     telefone = models.CharField(default="",max_length=50,null=True)
