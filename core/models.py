@@ -32,11 +32,14 @@ class Cliente(models.Model):
     cidade = models.CharField(default="",max_length=50,null=True)
     cep = models.CharField(default="",max_length=15,null=True)
     endereco = models.CharField(default="",max_length=150,null=True)
-    dados_financeiro = models.TextField(default="",null=True)
-    dados_faturamentos = models.TextField(default="",null=True)
-    dados_pedidos = models.TextField(default="",null=True)
+    dados_financeiro = models.TextField(default="",null=True,blank=True)
+    dados_faturamentos = models.TextField(default="",null=True,blank=True)
+    dados_pedidos = models.TextField(default="",null=True,blank=True)
     visualiza_varejo = models.BooleanField(default=False)
     inativo = models.BooleanField(default=False)
+
+    imagem_principal = models.ImageField(upload_to='imagens/',null=True,blank=True,default=None)
+    instagram = models.CharField(max_length=100,null=True,blank=True,default=None)
 
 
     def __str__(self):

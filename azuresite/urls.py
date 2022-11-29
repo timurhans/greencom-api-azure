@@ -27,7 +27,7 @@ promocoes,promocoes_computa,promocoes_remove,
 produtos,home,clientes,busca,
 categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
 carrinho_delete_item,produtos_update,produtos_cadastra_promo,produtos_lista,pedido_view_get,pedidos_atualiza_entregar,
-get_pedidos_atualizar_entregar,get_materiais_trade,save_solicitacao_trade,get_solicitacoes_trade)
+get_pedidos_atualizar_entregar,get_materiais_trade,save_solicitacao_trade,get_solicitacoes_trade,get_dados_extras_clientes)
 from params.views import (params,filterOptions)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
@@ -59,6 +59,7 @@ urlpatterns = [
     path('trade/get_materiais', get_materiais_trade),
     path('trade/get_solicitacoes', get_solicitacoes_trade),
     path('trade/salva_solicitacao', save_solicitacao_trade),
+    path('dados/dados_extras_clientes', get_dados_extras_clientes),
     path('promocoes', promocoes),
     path('promocoes/', promocoes),
     path('promocoes/<id_cliente>', promocoes),

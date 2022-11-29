@@ -1759,3 +1759,14 @@ def get_solicitacoes_trade(request):
         solicitacoes = list(solicitacoes)
         
         return Response({'solicitacoes':solicitacoes,'confirmed':True})
+
+
+@api_view(['GET'])
+def get_dados_extras_clientes(request):
+
+    # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
+        
+    clientes = list(Cliente.objects.all().values('id','cnpj','nome','imagem_principal','instagram'))
+    
+    return JsonResponse(clientes,safe=False)
+    # return Response(clientes,safe=False)
