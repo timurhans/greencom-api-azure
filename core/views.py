@@ -5,7 +5,6 @@ from django.template.loader import get_template
 from django.db.models import Q,Count,Sum,F
 from django.utils import timezone
 from django.core.mail import EmailMessage
-
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated,IsAuthenticatedOrReadOnly,AllowAny
 from rest_framework.response import Response
@@ -61,7 +60,6 @@ def separa_colecoes(colecoes):
 
     return list(colecoes_retorno)
 
-
 def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
     # ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
     # ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
@@ -77,6 +75,11 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
             if colecao != "Todas":
                 cols_erp = list(ColecaoErp.objects.filter(colecaoB2b__active=True,colecaoB2b__title=colecao).values_list('codigo', flat=True).distinct())
                 sort_params['produto__colecao__in']=cols_erp
+    else:
+        # Caso usuario nao seja Ondas(varejo) - nao traz colecao Online
+        if request.user.login != '02851704000101':
+            cols_erp = list(ColecaoErp.objects.filter(~Q(colecaoB2b__title='Online')).values_list('codigo', flat=True).distinct())
+            sort_params['produto__colecao__in']=cols_erp
     if 'periodo' in request.GET:
         periodo = request.GET['periodo']
         if periodo is not None:
@@ -94,6 +97,54 @@ def get_produtos(request,tabela_precos,linha,categoria,subcategoria):
             order_by = 'produto__produto'
     else:
         order_by = 'produto__produto'
+
+    # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
+    # tabela=tabela_precos,**sort_params)
+    queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__produtoperiodo__qtd_total__gt=0),
+    tabela=tabela_precos,**sort_params).distinct().order_by(order_by)
+    queryset = list(queryset.values('preco','produto__produto','produto__desconto','produto__descricao',
+    'produto__sortido','produto__composicao','produto__linha','produto__categoria',
+    'produto__subcategoria','produto__url_imagem','produto__qtd_tamanhos',
+    'produto__tamanhos','produto__colecao','produto__periodos'))
+
+    #adiciona dados do periodo no item caso o mesmo esteja no filtro
+    if 'periodo' in request.GET:
+        periodo = request.GET['periodo']
+        if periodo is not None:
+            if periodo != "Todos":
+                periodo = Periodo.objects.get(desc_periodo=periodo)
+                for item_qs in queryset:
+                    dados_periodo = list(ProdutoPeriodo.objects.filter(produto__produto=item_qs['produto__produto'],periodo__desc_periodo=periodo,qtd_total__gt=0).values())
+                    if len(dados_periodo)>0:
+                        dados_periodo = dados_periodo[0]
+                        dados_periodo = json.loads(dados_periodo['dados'])   
+                    else:
+                        dados_periodo = []
+
+                    item_qs['dados_periodo'] = dados_periodo
+
+
+    
+    return queryset
+
+def get_produtos_online(request):
+    # ult_atual = Parametro.objects.get(parametro='ULTIMA_ATUALIZACAO_PRODUTOS')
+    # ult_atual = datetime.strptime(ult_atual.valor,'%Y-%m-%d')
+
+    tabela_precos = '01'
+
+    sort_params = {}
+    #FILTRA COLECAO EXCLUSIVOS
+    cols_erp = list(ColecaoErp.objects.filter(colecaoB2b__active=True,colecaoB2b__title='Online').values_list('codigo', flat=True).distinct())
+    sort_params['produto__colecao__in']=cols_erp
+    if 'periodo' in request.GET:
+        periodo = request.GET['periodo']
+        if periodo is not None:
+            if periodo != "Todos":
+                periodo = Periodo.objects.get(desc_periodo=periodo)
+                sort_params['produto__produtoperiodo__periodo']=periodo
+    
+    order_by = 'produto__produto'
 
     # queryset = ProdutoPreco.objects.select_related('produto').filter(Q(produto__atualizacao__gte=ult_atual),
     # tabela=tabela_precos,**sort_params)
@@ -1190,7 +1241,7 @@ def categorias_update(request):
             data_hora = timezone.now()
 
             #salva cats desktop
-            dados_query = Categorias.objects.get(id=2)
+            dados_query = Categorias.objects.get(id=1)
             dados_query.dados = cats
             dados_query.atualizacao=data_hora
             dados_query.save()
@@ -1319,8 +1370,13 @@ def login_api(request):
     print(request.META)
     if request.user.is_authenticated:
 
-        colecoes = list(ColecaoB2b.objects.filter(active=True).order_by('ordem').values_list('title', flat=True).distinct())
-        colecoes.insert(0, "Todas")
+        if request.user.login == '02851704000101':
+            #PEGA TODAS AS COLECOES ATIVAS CASO USER SEJA ONDAS(VAREJO)
+            colecoes = list(ColecaoB2b.objects.filter(active=True).order_by('ordem').values_list('title', flat=True).distinct())
+            colecoes.insert(0, "Todas")
+        else:
+            colecoes = list(ColecaoB2b.objects.filter(active=True,filtro=True).order_by('ordem').values_list('title', flat=True).distinct())
+            colecoes.insert(0, "Todas")            
         periodos = list(Periodo.objects.filter(Q(periodo_faturamento__gt=date.today()) | Q(desc_periodo__in=['Imediato','30 dias'])).order_by(
                 'periodo_faturamento').values_list('desc_periodo', flat=True).distinct())
         periodos.insert(0, "Todos")
@@ -1354,7 +1410,7 @@ def home(request):
 @api_view(['GET','POST'])
 def periodos_api(request):
     #Retorna as qtds disponiveis do produto para o periodo
-    if request.user.is_authenticated:
+    # if request.user.is_authenticated:
         produto = request.GET['produto']
         periodo = request.GET['periodo']
         if periodo != '':
@@ -1366,8 +1422,8 @@ def periodos_api(request):
         
         return Response({"dados":[],'confirmed':True})
 
-    else:
-        return Response({'message':'Fazer Login','confirmed':False})
+    # else:
+    #     return Response({'message':'Fazer Login','confirmed':False})
 
 
 @api_view(['GET','POST'])
@@ -1387,6 +1443,13 @@ def produtos(request,linha,categoria,subcategoria=None):
            
     else:
         return Response({'message':'Fazer Login','confirmed':False})
+
+@api_view(['GET'])
+def produtos_online(request):
+       
+    queryset = get_produtos_online(request)
+    return Response({'lista':queryset,'isBarCode':False,'confirmed':True})
+           
 
 @api_view(['GET','POST'])
 def produtos_lista(request,lista):
@@ -1673,6 +1736,19 @@ def get_pedidos_atualizar_entregar(request):
     return Response({'message': 'Usuario nao e superuser','confirmed':False})
 
 
+@api_view(['GET'])
+def get_produtos_com_disp_periodo(request):
+
+
+    # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
+
+    produtos = ProdutoPeriodo.objects.values('produto__produto').distinct()
+
+    return Response({'produtos': produtos,'confirmed':False})
+
+
+
+
 #-------------- TRADE--------------
 
 
@@ -1766,7 +1842,8 @@ def get_dados_extras_clientes(request):
 
     # View para indicar quais pedidos o erp deve verificar para atualizar o "a entregar" - desconsidera pedidos zerados e com codigo_erp duplicado
         
-    clientes = list(Cliente.objects.all().values('id','cnpj','nome','imagem_principal','instagram'))
+    clientes = list(Cliente.objects.all().values('id','nome','imagem_principal','instagram'))
     
     return JsonResponse(clientes,safe=False)
     # return Response(clientes,safe=False)
+

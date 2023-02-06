@@ -24,11 +24,11 @@ reps_users_update,pedidos,pedidos_save,pedidos_integracao,
 pedidos_processa,pedidos_retoma,pedido_delete,pedidos_gera_pdf,
 promocoes,promocoes_computa,promocoes_remove,
 # generate_PDF,pedidos,
-produtos,home,clientes,busca,
+produtos,produtos_online,home,clientes,busca,get_produtos_com_disp_periodo,
 categorias,categorias_update,periodos_api,barras,carrinho,carrinho_update_periodo,carrinho_update_qtds,
 carrinho_delete_item,produtos_update,produtos_cadastra_promo,produtos_lista,pedido_view_get,pedidos_atualiza_entregar,
 get_pedidos_atualizar_entregar,get_materiais_trade,save_solicitacao_trade,get_solicitacoes_trade,get_dados_extras_clientes)
-from params.views import (params,filterOptions)
+from params.views import (params,filterOptions,update_last_update_integrador)
 from account.views import RegistrationView, ProfileView,change_password
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -78,7 +78,8 @@ urlpatterns = [
     path('clientes/', clientes,name='clientes'),
     path('categorias/', categorias,name='categorias'),
     path('categorias_update/', categorias_update),
-
+    path('produtos_com_disp_periodo/', get_produtos_com_disp_periodo),
+    path('update_last_update_integrador/', update_last_update_integrador),
     path('change_password/', change_password),
 
     path('accounts/', RegistrationView.as_view(), name='register'),
@@ -94,6 +95,7 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
     path('lista/<lista>/', produtos_lista,name='produtos_lista'),
+    path('online/', produtos_online,name='produtos_online'),
     path('<linha>/<categoria>/', produtos,name='produtos'),
     path('<linha>/<categoria>/<subcategoria>/', produtos,name='produtos'),
 ]

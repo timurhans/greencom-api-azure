@@ -39,7 +39,13 @@ class PromocaoProdutoTabularInline(admin.TabularInline):
     model = PromocaoProduto
     extra = 0
     fk_name = 'promocao'
-    readonly_fields = ('produto',)
+    raw_id_fields = ('produto',)
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        field = super(PromocaoProdutoTabularInline, self).formfield_for_foreignkey(db_field, request, **kwargs)
+        if db_field.name == "produto" and hasattr(self, "cached_produtos"):
+            field.choices = self.cached_produtos
+        return field
+    # readonly_fields = ('produto',)
 
 
 class PromocaoAdmin(admin.ModelAdmin):
@@ -59,7 +65,7 @@ class PromocaoAdmin(admin.ModelAdmin):
 
 class ClienteAdmin(admin.ModelAdmin):
 
-    list_display = ('representante','id','cnpj', 'nome','valor_aberto', 'tabela_precos','comissao')
+    list_display = ('representante','id','inativo','cnpj','nome','valor_aberto', 'tabela_precos','comissao')
 
     search_fields = ('nome',)
     ordering = ('nome',)

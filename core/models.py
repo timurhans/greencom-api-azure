@@ -8,7 +8,7 @@ import pandas as pd
 
 class Categorias(models.Model):
     dados = models.TextField()
-    atualizacao = models.DateTimeField(null=True,unique=True)
+    atualizacao = models.DateTimeField(null=True,unique=False)
     def __str__(self):
         return str(self.id)
 

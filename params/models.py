@@ -5,6 +5,7 @@ from django.db import models
 class ColecaoB2b(models.Model):
     title       = models.CharField(max_length=20, null=False, blank=False,unique=True)
     active      = models.BooleanField(default=True)
+    filtro      = models.BooleanField(default=False)
     ordem       = models.IntegerField(null=False, blank=False,unique=True)
 
     def __str__(self):
